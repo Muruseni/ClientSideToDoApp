@@ -19,8 +19,9 @@ public class TodoRepositoryTests
             var repository = new TodoRepository(factory);
             var category = new Category { Name = "Work" };
             await repository.AddCategoryAsync(category);
-            var item = new TodoItem { Title = "First", Priority = 5, CategoryId = category.Id };
+            var item = new TodoItem { Title = "First", Priority = 5, CategoryId = category.Id, Category = category };
             await repository.AddAsync(item);
+            Assert.Same(category, item.Category);
             var reloaded = await new TodoRepository(factory).GetByIdAsync(item.Id);
             Assert.Equal("Work", reloaded!.Category!.Name);
             reloaded.Title = "Updated";
@@ -42,5 +43,6 @@ public class TodoRepositoryTests
         public AppDbContext CreateDbContext() => new(new DbContextOptionsBuilder<AppDbContext>().UseSqlite($"Data Source={path};Pooling=False").Options);
     }
 }
+
 
 

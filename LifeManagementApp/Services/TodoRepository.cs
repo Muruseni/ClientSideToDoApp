@@ -46,10 +46,18 @@ public class TodoRepository(IDbContextFactory<AppDbContext> contextFactory) : IT
         item.Validate();
         await InitializeAsync();
         await using var db = await contextFactory.CreateDbContextAsync();
-        // Attach only the foreign key; an existing category must not be inserted again.
-        item.Category = null;
-        db.TodoItems.Add(item);
+        // Copy scalar values so an existing category is not inserted or detached from the caller.
+        var stored = new TodoItem
+        {
+            Title = item.Title,
+            Priority = item.Priority,
+            DueDate = item.DueDate,
+            IsDone = item.IsDone,
+            CategoryId = item.CategoryId
+        };
+        db.TodoItems.Add(stored);
         await db.SaveChangesAsync();
+        item.Id = stored.Id;
     }
 
     public async Task UpdateAsync(TodoItem item)
@@ -87,4 +95,5 @@ public class TodoRepository(IDbContextFactory<AppDbContext> contextFactory) : IT
         await db.SaveChangesAsync();
     }
 }
+
 
