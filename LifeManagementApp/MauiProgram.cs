@@ -32,6 +32,8 @@ public static class MauiProgram
 		builder.Services.AddTransient<AddTodoPage>();
 		builder.Services.AddTransient<TodoListViewModel>();
 		builder.Services.AddTransient<AddTodoViewModel>();
+		builder.Services.AddTransient<EditTodoPage>();
+		builder.Services.AddTransient<EditTodoViewModel>();
 
 #if DEBUG
 		builder.Logging.AddDebug();
@@ -40,6 +42,7 @@ public static class MauiProgram
 		return builder.Build();
 	}
 }
+
 
 
 

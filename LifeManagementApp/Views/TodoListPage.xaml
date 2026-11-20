@@ -1,11 +1,20 @@
 ﻿<?xml version="1.0" encoding="utf-8" ?>
-<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
-             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-             xmlns:vm="clr-namespace:LifeManagementApp.ViewModels"
-             x:Class="LifeManagementApp.Views.TodoListPage" x:DataType="vm:TodoListViewModel" Title="To-dos">
-    <VerticalStackLayout Padding="24" Spacing="16">
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui" xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:LifeManagementApp.ViewModels" xmlns:models="clr-namespace:LifeManagementApp.Models"
+             x:Class="LifeManagementApp.Views.TodoListPage" x:Name="Page" x:DataType="vm:TodoListViewModel" Title="To-dos">
+    <Grid Padding="24" RowDefinitions="Auto,Auto,*,Auto" RowSpacing="12">
         <Label Text="To-dos" FontSize="28" FontAttributes="Bold" />
-        <Label Text="Your task list is coming next." />
-        <Button Text="Add a to-do" Command="{Binding AddCommand}" />
-    </VerticalStackLayout>
+        <Label Grid.Row="1" Text="{Binding ErrorMessage}" TextColor="Red" />
+        <CollectionView Grid.Row="2" ItemsSource="{Binding Items}" EmptyView="No tasks yet. Add one to get started.">
+            <CollectionView.ItemTemplate>
+                <DataTemplate x:DataType="models:TodoItem">
+                    <Grid ColumnDefinitions="*,Auto" Padding="4,8">
+                        <VerticalStackLayout><Label Text="{Binding Title}" FontAttributes="Bold" /><Label Text="{Binding DueDate, StringFormat='Due: {0:d}'}" /><Label Text="{Binding Priority, StringFormat='Priority: {0}'}" /></VerticalStackLayout>
+                        <Button Grid.Column="1" Text="Edit" Command="{Binding Source={x:Reference Page}, Path=BindingContext.EditCommand, x:DataType=ContentPage}" CommandParameter="{Binding .}" />
+                    </Grid>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
+        <Button Grid.Row="3" Text="Add a to-do" Command="{Binding AddCommand}" />
+    </Grid>
 </ContentPage>

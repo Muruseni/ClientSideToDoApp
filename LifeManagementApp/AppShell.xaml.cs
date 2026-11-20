@@ -9,5 +9,7 @@ public partial class AppShell : Shell
         InitializeComponent();
         // Detail pages are pushed on top of a Shell tab rather than shown in the flyout.
         Routing.RegisterRoute("add", typeof(AddTodoPage));
+        Routing.RegisterRoute("edit", typeof(EditTodoPage));
     }
 }
+
