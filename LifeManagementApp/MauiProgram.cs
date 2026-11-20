@@ -1,4 +1,6 @@
-﻿using LifeManagementApp.Data;
+﻿using LifeManagementApp.ViewModels;
+using LifeManagementApp.Views;
+using LifeManagementApp.Data;
 using LifeManagementApp.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -22,6 +24,13 @@ public static class MauiProgram
 		var databasePath = Path.Combine(FileSystem.AppDataDirectory, "tasks.db");
 		builder.Services.AddDbContextFactory<AppDbContext>(options => options.UseSqlite($"Data Source={databasePath}"));
 		builder.Services.AddSingleton<ITodoRepository, TodoRepository>();
+		builder.Services.AddSingleton<INavigationService, ShellNavigationService>();
+
+		// Pages and view models are transient so navigation receives fresh UI state.
+		builder.Services.AddTransient<HomePage>();
+		builder.Services.AddTransient<TodoListPage>();
+		builder.Services.AddTransient<AddTodoPage>();
+		builder.Services.AddTransient<TodoListViewModel>();
 
 #if DEBUG
 		builder.Logging.AddDebug();
@@ -30,4 +39,6 @@ public static class MauiProgram
 		return builder.Build();
 	}
 }
+
+
 

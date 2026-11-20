@@ -1,9 +1,11 @@
 ﻿<?xml version="1.0" encoding="utf-8" ?>
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-             x:Class="LifeManagementApp.Views.TodoListPage" Title="To-dos">
+             xmlns:vm="clr-namespace:LifeManagementApp.ViewModels"
+             x:Class="LifeManagementApp.Views.TodoListPage" x:DataType="vm:TodoListViewModel" Title="To-dos">
     <VerticalStackLayout Padding="24" Spacing="16">
         <Label Text="To-dos" FontSize="28" FontAttributes="Bold" />
         <Label Text="Your task list is coming next." />
+        <Button Text="Add a to-do" Command="{Binding AddCommand}" />
     </VerticalStackLayout>
 </ContentPage>
