@@ -2,11 +2,10 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui" xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:vm="clr-namespace:LifeManagementApp.ViewModels" xmlns:models="clr-namespace:LifeManagementApp.Models"
              x:Class="LifeManagementApp.Views.TodoListPage" x:Name="Page" x:DataType="vm:TodoListViewModel" Title="To-dos">
-    <Grid Padding="24" RowDefinitions="Auto,Auto,Auto,*,Auto" RowSpacing="12">
+    <Grid Padding="24" RowDefinitions="Auto,Auto,*,Auto" RowSpacing="12">
         <Label Text="To-dos" FontSize="28" FontAttributes="Bold" />
         <Label Grid.Row="1" Text="{Binding ErrorMessage}" TextColor="Red" />
-        <Picker Grid.Row="2" Title="Sort tasks" ItemsSource="{Binding SortOptions}" SelectedIndex="{Binding SelectedSortIndex}" SemanticProperties.Description="Sort tasks by priority or due date" />
-        <CollectionView Grid.Row="3" ItemsSource="{Binding Items}" EmptyView="No tasks yet. Add one to get started.">
+        <CollectionView Grid.Row="2" ItemsSource="{Binding Items}" EmptyView="No tasks yet. Add one to get started.">
             <CollectionView.ItemTemplate>
                 <DataTemplate x:DataType="models:TodoItem">
                     <Grid ColumnDefinitions="*,Auto" Padding="4,8">
@@ -16,7 +15,6 @@
                 </DataTemplate>
             </CollectionView.ItemTemplate>
         </CollectionView>
-        <Button Grid.Row="4" Text="Add a to-do" Command="{Binding AddCommand}" />
+        <Button Grid.Row="3" Text="Add a to-do" Command="{Binding AddCommand}" />
     </Grid>
 </ContentPage>
-
