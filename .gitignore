@@ -1,0 +1,6 @@
+﻿## Build output and local IDE files
+**/bin/
+**/obj/
+.vs/
+*.user
+*.suo
