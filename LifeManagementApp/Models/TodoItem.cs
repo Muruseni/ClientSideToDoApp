@@ -17,4 +17,8 @@ public class TodoItem
     public bool IsDone { get; set; }
     public int? CategoryId { get; set; }
     public Category? Category { get; set; }
+
+    // Call before saving: attributes describe the rules but do not enforce them automatically.
+    public void Validate() => Validator.ValidateObject(this, new ValidationContext(this), validateAllProperties: true);
 }
+
