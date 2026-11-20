@@ -34,6 +34,7 @@ public class TaskFlowTests
         var repository = new FakeRepository { Items = [new() { Title = "Later", Priority = 5, DueDate = new(2026, 12, 3) }, new() { Title = "Low", Priority = 1 }, new() { Title = "Soon", Priority = 5, DueDate = new(2026, 12, 1) }] };
         var vm = new TodoListViewModel(repository, new FakeNavigation());
         await vm.RefreshAsync(); Assert.Equal(new[] { "Soon", "Later", "Low" }, vm.Items.Select(x => x.Title));
+        vm.SelectedSortIndex = 1; Assert.Equal(new[] { "Low", "Soon", "Later" }, vm.Items.Select(x => x.Title));
     }
 
     private sealed class FakeNavigation : INavigationService
@@ -58,3 +59,4 @@ public class TaskFlowTests
         public Task AddCategoryAsync(Category category) => Task.CompletedTask;
     }
 }
+
