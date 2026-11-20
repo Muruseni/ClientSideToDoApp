@@ -21,7 +21,8 @@ public static class MauiProgram
 			});
 
 		// The database stays in the app's private data directory.
-		var databasePath = Path.Combine(FileSystem.AppDataDirectory, "tasks.db");
+		var databasePath = Environment.GetEnvironmentVariable("LIFE_APP_DATABASE_PATH")
+			?? Path.Combine(FileSystem.AppDataDirectory, "tasks.db");
 		builder.Services.AddDbContextFactory<AppDbContext>(options => options.UseSqlite($"Data Source={databasePath}"));
 		builder.Services.AddSingleton<ITodoRepository, TodoRepository>();
 		builder.Services.AddSingleton<INavigationService, ShellNavigationService>();
@@ -42,6 +43,7 @@ public static class MauiProgram
 		return builder.Build();
 	}
 }
+
 
 
 

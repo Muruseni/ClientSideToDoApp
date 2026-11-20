@@ -18,3 +18,5 @@ The SQLite repository uses an EF Core Code First context. The database path is i
 
 Run model and repository tests with `dotnet test LifeManagementApp.Tests/LifeManagementApp.Tests.csproj`.
 
+
+For isolated development checks, set `LIFE_APP_DATABASE_PATH` to an absolute SQLite file path before starting the app. Without it, the normal app-data location is used.
