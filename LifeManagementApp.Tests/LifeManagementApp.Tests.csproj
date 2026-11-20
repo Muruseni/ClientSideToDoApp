@@ -19,5 +19,7 @@
   </ItemGroup>
 
   <ItemGroup><Compile Include="../LifeManagementApp/Models/*.cs" Link="Models/%(Filename)%(Extension)" /></ItemGroup>
+  <ItemGroup><PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="9.0.0" /><Compile Include="../LifeManagementApp/Data/AppDbContext.cs" Link="Data/AppDbContext.cs" /><Compile Include="../LifeManagementApp/Services/*.cs" Link="Services/%(Filename)%(Extension)" /></ItemGroup>
 </Project>
+
 

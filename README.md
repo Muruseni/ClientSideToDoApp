@@ -11,3 +11,10 @@ dotnet build LifeManagementApp/LifeManagementApp.csproj -f net9.0-windows10.0.19
 ```
 
 The app currently contains the standard MAUI starter screen. Task storage and weather are planned in the project issues.
+
+## Storage
+
+The SQLite repository uses an EF Core Code First context. The database path is in the app data directory and the repository exposes asynchronous operations. The repository initializes the database on first use. The initial schema uses `EnsureCreated`; it does not upgrade existing databases. Before changing a released schema, introduce and apply EF Core migrations instead of relying on `EnsureCreated`.
+
+Run model and repository tests with `dotnet test LifeManagementApp.Tests/LifeManagementApp.Tests.csproj`.
+
