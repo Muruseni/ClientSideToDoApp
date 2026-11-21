@@ -2,7 +2,8 @@ const state = { tasks: [], categories: [], editing: null, categoryId: '', sort: 
 const $ = id => document.getElementById(id);
 const today = () => new Date().toISOString().slice(0, 10);
 const dateText = value => new Date(value).toLocaleDateString(undefined, { dateStyle: 'medium' });
-const localStorageKeys = { tasks: 'life-management.tasks', categories: 'life-management.categories' };
+const browserDatabaseName = 'life-management-browser';
+const browserStoreName = 'state';
 
 // Keep fetch error handling in one place so every form displays API validation consistently.
 async function api(url, options) {
@@ -11,20 +12,53 @@ async function api(url, options) {
   return response.status === 204 ? null : response.json();
 }
 
-// Keep a browser-only copy of the data so the UI remains usable when the local
-// ASP.NET host is unavailable or blocked by Windows application control.
-function localData() {
-  const categories = JSON.parse(localStorage.getItem(localStorageKeys.categories) || '[]');
-  const tasks = JSON.parse(localStorage.getItem(localStorageKeys.tasks) || '[]').map(task => ({
+// Keep a browser-native database so the UI remains usable when the local ASP.NET
+// host is unavailable or blocked by Windows application control. IndexedDB is
+// persistent for this browser profile and does not require a trusted executable.
+function openBrowserDatabase() {
+  return new Promise((resolve, reject) => {
+    if (!('indexedDB' in window)) { resolve(null); return; }
+    const request = indexedDB.open(browserDatabaseName, 1);
+    request.onupgradeneeded = () => request.result.createObjectStore(browserStoreName);
+    request.onsuccess = () => resolve(request.result);
+    request.onerror = () => reject(request.error);
+  });
+}
+
+function readBrowserRecord(database) {
+  return new Promise((resolve, reject) => {
+    const request = database.transaction(browserStoreName, 'readonly').objectStore(browserStoreName).get('snapshot');
+    request.onsuccess = () => resolve(request.result || null);
+    request.onerror = () => reject(request.error);
+  });
+}
+
+function writeBrowserRecord(database, data) {
+  return new Promise((resolve, reject) => {
+    const request = database.transaction(browserStoreName, 'readwrite').objectStore(browserStoreName).put(data, 'snapshot');
+    request.onsuccess = () => resolve();
+    request.onerror = () => reject(request.error);
+  });
+}
+
+async function localData() {
+  const database = await openBrowserDatabase();
+  let stored = database ? await readBrowserRecord(database) : null;
+  if (!stored) stored = { tasks: [], categories: [] };
+  const categories = stored.categories || [];
+  const tasks = (stored.tasks || []).map(task => ({
     ...task,
     categoryName: categories.find(category => category.id === task.categoryId)?.name || ''
   }));
+  if (database) database.close();
   return { tasks, categories };
 }
 
-function saveLocalData(tasks, categories) {
-  localStorage.setItem(localStorageKeys.tasks, JSON.stringify(tasks));
-  localStorage.setItem(localStorageKeys.categories, JSON.stringify(categories));
+async function saveLocalData(tasks, categories) {
+  const database = await openBrowserDatabase();
+  if (!database) throw new Error('This browser does not support offline storage.');
+  await writeBrowserRecord(database, { tasks, categories });
+  database.close();
 }
 
 function nextLocalId(items) { return items.reduce((highest, item) => Math.max(highest, Number(item.id) || 0), 0) + 1; }
@@ -38,9 +72,9 @@ async function load() {
   } catch {
     // Fall back to browser storage instead of leaving the page unusable when
     // the local .NET API cannot start under the device's security policy.
-    ({ tasks: state.tasks, categories: state.categories } = localData());
+    ({ tasks: state.tasks, categories: state.categories } = await localData());
     render();
-    $('task-message').textContent = 'Offline mode: tasks are saved in this browser.';
+    $('task-message').textContent = 'Offline mode: tasks are saved in this browser database.';
   }
 }
 
@@ -115,13 +149,13 @@ async function saveTaskWithFallback(event) {
     const id = $('task-id').value;
     await api(id ? `/api/tasks/${id}` : '/api/tasks', { method: id ? 'PUT' : 'POST', body: JSON.stringify(task) });
   } catch {
-    const data = localData();
+    const data = await localData();
     const id = Number($('task-id').value);
     if (id) {
       const index = data.tasks.findIndex(item => item.id === id);
       if (index >= 0) data.tasks[index] = { ...data.tasks[index], ...task };
     } else data.tasks.push({ ...task, id: nextLocalId(data.tasks) });
-    saveLocalData(data.tasks, data.categories);
+    await saveLocalData(data.tasks, data.categories);
   }
   $('task-dialog').close();
   await load();
@@ -138,12 +172,12 @@ async function handleTaskActionWithFallback(event) {
     if (button.dataset.action === 'toggle') await api(`/api/tasks/${task.id}`, { method:'PUT', body: JSON.stringify({ ...task, isDone: !task.isDone }) });
     if (button.dataset.action === 'delete') await api(`/api/tasks/${task.id}`, { method:'DELETE' });
   } catch {
-    const data = localData();
+    const data = await localData();
     if (button.dataset.action === 'toggle') {
       const localTask = data.tasks.find(item => item.id === task.id);
       if (localTask) localTask.isDone = !localTask.isDone;
     } else data.tasks = data.tasks.filter(item => item.id !== task.id);
-    saveLocalData(data.tasks, data.categories);
+    await saveLocalData(data.tasks, data.categories);
   }
   await load();
 }
@@ -153,9 +187,9 @@ async function addCategoryWithFallback() {
   if (!name) return;
   try { await api('/api/categories', { method:'POST', body: JSON.stringify({ name }) }); }
   catch {
-    const data = localData();
+    const data = await localData();
     data.categories.push({ id: nextLocalId(data.categories), name });
-    saveLocalData(data.tasks, data.categories);
+    await saveLocalData(data.tasks, data.categories);
   }
   $('new-category').value = '';
   await load();

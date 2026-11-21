@@ -18,7 +18,7 @@ Open [http://127.0.0.1:5087](http://127.0.0.1:5087) in a browser. The static ser
 
 When the ASP.NET API is unavailable, [app.js](LifeManagementApp.Web/wwwroot/app.js) automatically switches to offline mode:
 
-- Tasks and categories are stored in the browser's `localStorage`.
+- Tasks and categories are stored in the browser's IndexedDB database.
 - Weather uses the direct Open-Meteo geocoding and forecast endpoints.
 - The kitesurf alert is active at wind speeds of 5 m/s or higher.
 - Data in offline mode is local to that browser and is not written to the SQLite database.
@@ -105,7 +105,7 @@ The browser client mirrors the same task and weather concepts. Its ASP.NET host 
 
 The normal MAUI and ASP.NET modes store tasks in SQLite under the application data directory. `LIFE_APP_DATABASE_PATH` can point to an explicit database file for development. The initial schema uses `EnsureCreated`, so production schema changes should move to EF Core migrations.
 
-The static safe mode stores data in the current browser's `localStorage`; it is intentionally not a replacement for shared SQLite persistence. Weather requires network access to Open-Meteo, and the Windows target may require enterprise approval for unsigned development binaries.
+The static safe mode stores data in the current browser's IndexedDB database; it is intentionally not a replacement for shared SQLite persistence. Weather requires network access to Open-Meteo, and the Windows target may require enterprise approval for unsigned development binaries.
 
 ## Workflow and contribution notes
 
