@@ -1,6 +1,21 @@
-﻿namespace LifeManagementApp.Views;
+using LifeManagementApp.ViewModels;
+
+namespace LifeManagementApp.Views;
 
 public partial class HomePage : ContentPage
 {
-    public HomePage() => InitializeComponent();
+    private readonly HomeViewModel viewModel;
+
+    public HomePage(HomeViewModel viewModel)
+    {
+        InitializeComponent();
+        this.viewModel = viewModel;
+        BindingContext = viewModel;
+    }
+
+    protected override async void OnAppearing()
+    {
+        base.OnAppearing();
+        await viewModel.RefreshAsync();
+    }
 }

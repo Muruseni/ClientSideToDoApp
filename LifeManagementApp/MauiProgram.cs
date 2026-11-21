@@ -26,9 +26,11 @@ public static class MauiProgram
 		builder.Services.AddDbContextFactory<AppDbContext>(options => options.UseSqlite($"Data Source={databasePath}"));
 		builder.Services.AddSingleton<ITodoRepository, TodoRepository>();
 		builder.Services.AddSingleton<INavigationService, ShellNavigationService>();
+		builder.Services.AddSingleton<IWeatherService>(_ => new OpenMeteoWeatherService(new HttpClient()));
 
 		// Pages and view models are transient so navigation receives fresh UI state.
 		builder.Services.AddTransient<HomePage>();
+		builder.Services.AddTransient<HomeViewModel>();
 		builder.Services.AddTransient<TodoListPage>();
 		builder.Services.AddTransient<AddTodoPage>();
 		builder.Services.AddTransient<TodoListViewModel>();

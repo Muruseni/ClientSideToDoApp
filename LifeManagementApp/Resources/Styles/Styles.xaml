@@ -67,6 +67,33 @@
         </Setter>
     </Style>
 
+    <Style x:Key="SecondaryButton" TargetType="Button" BasedOn="{StaticResource Button}">
+        <Setter Property="BackgroundColor" Value="Transparent" />
+        <Setter Property="TextColor" Value="{StaticResource Primary}" />
+        <Setter Property="Padding" Value="10,6" />
+    </Style>
+
+    <Style x:Key="DangerButton" TargetType="Button" BasedOn="{StaticResource Button}">
+        <Setter Property="BackgroundColor" Value="Transparent" />
+        <Setter Property="TextColor" Value="#B42318" />
+        <Setter Property="Padding" Value="10,6" />
+    </Style>
+
+    <Style x:Key="CardBorder" TargetType="Border">
+        <Setter Property="Stroke" Value="#E2E8F0" />
+        <Setter Property="StrokeThickness" Value="1" />
+        <Setter Property="Padding" Value="12" />
+        <Setter Property="BackgroundColor" Value="White" />
+        <Setter Property="StrokeShape">
+            <Setter.Value><RoundRectangle CornerRadius="12" /></Setter.Value>
+        </Setter>
+    </Style>
+
+    <Style x:Key="CaptionLabel" TargetType="Label">
+        <Setter Property="TextColor" Value="#64748B" />
+        <Setter Property="FontSize" Value="13" />
+    </Style>
+
     <Style TargetType="DatePicker">
         <Setter Property="TextColor" Value="{AppThemeBinding Light={StaticResource Gray900}, Dark={StaticResource White}}" />
         <Setter Property="BackgroundColor" Value="Transparent" />

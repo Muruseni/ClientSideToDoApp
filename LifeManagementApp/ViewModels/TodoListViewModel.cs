@@ -25,4 +25,36 @@ public partial class TodoListViewModel(ITodoRepository repository, INavigationSe
 
     [RelayCommand] private Task AddAsync() => navigation.GoToAddTodoAsync();
     [RelayCommand] private Task EditAsync(TodoItem item) => navigation.GoToEditTodoAsync(item.Id);
+
+    [RelayCommand]
+    private async Task ToggleDoneAsync(TodoItem item)
+    {
+        var previous = item.IsDone;
+        item.IsDone = !previous;
+        try
+        {
+            await repository.UpdateAsync(item);
+            await RefreshAsync();
+        }
+        catch (Exception)
+        {
+            item.IsDone = previous;
+            ErrorMessage = "Could not update the task.";
+        }
+    }
+
+    [RelayCommand]
+    private async Task DeleteAsync(TodoItem item)
+    {
+        try
+        {
+            await repository.DeleteAsync(item.Id);
+            Items.Remove(item);
+            ErrorMessage = string.Empty;
+        }
+        catch (Exception)
+        {
+            ErrorMessage = "Could not delete the task.";
+        }
+    }
 }

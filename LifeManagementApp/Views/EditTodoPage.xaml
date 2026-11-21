@@ -6,6 +6,6 @@
         <Label Text="Priority (1–5)" /><Stepper Minimum="1" Maximum="5" Increment="1" Value="{Binding Priority}" />
         <Label Text="{Binding Priority, StringFormat='Priority: {0}'}" />
         <Label Text="Due date" /><DatePicker Date="{Binding DueDate}" />
-        <Label Text="{Binding ErrorMessage}" TextColor="Red" /><Button Text="Save" Command="{Binding SaveCommand}" />
+        <Label Text="{Binding ErrorMessage}" TextColor="Red" /><ActivityIndicator IsRunning="{Binding IsBusy}" /><Button Text="Save" Command="{Binding SaveCommand}" />
     </VerticalStackLayout>
 </ContentPage>

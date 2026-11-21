@@ -18,5 +18,15 @@ The SQLite repository uses an EF Core Code First context. The database path is i
 
 Run model and repository tests with `dotnet test LifeManagementApp.Tests/LifeManagementApp.Tests.csproj`.
 
+## Browser version
+
+The repository now includes an ASP.NET Core web version in [LifeManagementApp.Web](LifeManagementApp.Web). It reuses the task models, SQLite repository, and weather service, but runs in a browser instead of launching a Windows executable:
+
+```powershell
+dotnet run --project LifeManagementApp.Web/LifeManagementApp.Web.csproj
+```
+
+Open the local URL printed by ASP.NET Core, normally `http://localhost:5000` or `https://localhost:7000`. The web host creates its SQLite database beside the web app unless `LIFE_APP_DATABASE_PATH` is set.
+
 
 For isolated development checks, set `LIFE_APP_DATABASE_PATH` to an absolute SQLite file path before starting the app. Without it, the normal app-data location is used.
