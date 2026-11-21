@@ -159,9 +159,9 @@ public class TaskFlowTests
 
     [Theory]
     [InlineData(4.99, false)]
-    [InlineData(5, true)]
+    [InlineData(5, false)]
     [InlineData(5.01, true)]
-    public void KitesurfAlertUsesInclusiveFiveMetreThreshold(double windSpeed, bool expected)
+    public void KitesurfAlertRequiresWindOverFiveMetres(double windSpeed, bool expected)
     {
         var snapshot = new WeatherSnapshot("Kyiv", 20, 20, windSpeed, "Clear sky", DateTime.UtcNow);
 

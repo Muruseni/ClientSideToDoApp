@@ -169,7 +169,7 @@ async function loadWeather() {
       // A blocked local .NET host should not make the public weather lookup unusable.
       weather = await loadWeatherDirectly(city);
     }
-    const alert = weather.kitesurfConditions ? 'Kitesurf alert: conditions are available.' : 'Kitesurf alert: wind is below 5 m/s.';
+    const alert = weather.kitesurfConditions ? '🪁 Kitesurf weather!' : 'Kitesurf alert: wind is 5 m/s or lower.';
     $('weather-result').innerHTML = `<div class="weather-temp">${weather.temperature.toFixed(0)}°C</div><div>${escapeHtml(weather.description)} in ${escapeHtml(weather.city)}</div><small>Feels like ${weather.feelsLike.toFixed(0)}°C · Wind ${weather.windSpeed.toFixed(1)} m/s</small><div>${alert}</div>`;
   } catch (error) {
     $('weather-result').textContent = error.message || 'Weather is unavailable right now.';
@@ -186,7 +186,7 @@ async function loadWeatherDirectly(city) {
   if (!forecastResponse.ok) throw new Error('Weather data was unavailable.');
   const current = (await forecastResponse.json()).current;
   if (!current) throw new Error('Weather data was unavailable.');
-  return { city: location.name || city, temperature: current.temperature_2m, feelsLike: current.apparent_temperature, windSpeed: current.wind_speed_10m, kitesurfConditions: current.wind_speed_10m >= 5, description: describeWeatherCode(current.weather_code) };
+  return { city: location.name || city, temperature: current.temperature_2m, feelsLike: current.apparent_temperature, windSpeed: current.wind_speed_10m, kitesurfConditions: current.wind_speed_10m > 5, description: describeWeatherCode(current.weather_code) };
 }
 
 function describeWeatherCode(code) { return ({ 0:'Clear sky', 1:'Mostly clear', 2:'Mostly clear', 3:'Overcast', 45:'Foggy', 48:'Foggy', 51:'Drizzle', 53:'Drizzle', 55:'Drizzle', 61:'Rain', 63:'Rain', 65:'Rain', 71:'Snow', 73:'Snow', 75:'Snow', 80:'Rain showers', 81:'Rain showers', 82:'Rain showers', 95:'Thunderstorm', 96:'Thunderstorm', 99:'Thunderstorm' })[code] || 'Unknown conditions'; }

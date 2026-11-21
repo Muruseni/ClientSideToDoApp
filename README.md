@@ -20,7 +20,7 @@ When the ASP.NET API is unavailable, [app.js](LifeManagementApp.Web/wwwroot/app.
 
 - Tasks and categories are stored in a SQLite database running in WebAssembly; IndexedDB stores the exported SQLite file between visits.
 - Weather uses the direct Open-Meteo geocoding and forecast endpoints.
-- The kitesurf alert is active at wind speeds of 5 m/s or higher.
+- The kitesurf alert is active when wind speed is over 5 m/s; exactly 5 m/s does not trigger it.
 - Data in offline mode is local to that browser and is not written to the server's SQLite database. The first offline load downloads the pinned `sql.js` WebAssembly runtime from jsDelivr.
 
 The browser client still prefers the ASP.NET API when it is available, so the same UI can use server-backed SQLite persistence during normal development.
@@ -97,7 +97,7 @@ The browser client mirrors the same task and weather concepts. Its ASP.NET host 
 - Priority is an integer from 1 to 5; larger values are more important.
 - Home shows the first three open tasks ordered by descending priority, then earliest due date.
 - The task list can sort by priority, due date, or title and can filter by category.
-- Weather uses Open-Meteo. Wind speed is requested and displayed in metres per second; kitesurf conditions are considered available at 5 m/s or above.
+- Weather uses Open-Meteo. Wind speed is requested and displayed in metres per second; kitesurf conditions are considered available only above 5 m/s.
 - Navigation is provided through `INavigationService`, keeping view models independent of Shell and page controls.
 - The repository and weather service are registered as singletons; pages and view models are transient so navigation receives fresh screen state. `AppDbContext` is created through `AddDbContextFactory` for short-lived database operations.
 
@@ -115,4 +115,4 @@ AI assistance was used for code exploration, test scaffolding, documentation dra
 
 ## Presentation checklist
 
-For a criterion-specific walkthrough, demonstrate: adding a validated task; priority and due-date ordering; the top-three home preview; category creation and filtering; editing, completion, deletion, and persistence; weather lookup and the inclusive 5 m/s kitesurf threshold; offline/error behavior; and the difference between server-backed SQLite mode and browser-only safe mode.
+For a criterion-specific walkthrough, demonstrate: adding a validated task; priority and due-date ordering; the top-three home preview; category creation and filtering; editing, completion, deletion, and persistence; weather lookup and the over-5 m/s kitesurf threshold; offline/error behavior; and the difference between server-backed SQLite mode and browser-only safe mode.
