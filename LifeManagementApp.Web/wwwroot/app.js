@@ -4,6 +4,9 @@ const today = () => new Date().toISOString().slice(0, 10);
 const dateText = value => new Date(value).toLocaleDateString(undefined, { dateStyle: 'medium' });
 const browserDatabaseName = 'life-management-browser';
 const browserStoreName = 'state';
+const browserSqlJsVersion = '1.13.0';
+let browserSqlite;
+let browserStorage;
 
 // Keep fetch error handling in one place so every form displays API validation consistently.
 async function api(url, options) {
@@ -12,15 +15,16 @@ async function api(url, options) {
   return response.status === 204 ? null : response.json();
 }
 
-// Keep a browser-native database so the UI remains usable when the local ASP.NET
+// Keep SQLite in the browser so the UI remains usable when the local ASP.NET
 // host is unavailable or blocked by Windows application control. IndexedDB is
-// persistent for this browser profile and does not require a trusted executable.
-function openBrowserDatabase() {
+// only the durable file container; sql.js performs the actual SQLite queries.
+function openBrowserStorage() {
+  if (browserStorage) return Promise.resolve(browserStorage);
   return new Promise((resolve, reject) => {
     if (!('indexedDB' in window)) { resolve(null); return; }
     const request = indexedDB.open(browserDatabaseName, 1);
     request.onupgradeneeded = () => request.result.createObjectStore(browserStoreName);
-    request.onsuccess = () => resolve(request.result);
+    request.onsuccess = () => { browserStorage = request.result; resolve(browserStorage); };
     request.onerror = () => reject(request.error);
   });
 }
@@ -41,24 +45,74 @@ function writeBrowserRecord(database, data) {
   });
 }
 
+function browserRows(database, query) {
+  const result = database.exec(query);
+  return result.length ? result[0].values : [];
+}
+
+function browserSchema(database) {
+  database.run(`
+    PRAGMA foreign_keys = ON;
+    CREATE TABLE IF NOT EXISTS categories (id INTEGER PRIMARY KEY, name TEXT NOT NULL UNIQUE);
+    CREATE TABLE IF NOT EXISTS tasks (
+      id INTEGER PRIMARY KEY,
+      title TEXT NOT NULL,
+      priority INTEGER NOT NULL,
+      dueDate TEXT NOT NULL,
+      isDone INTEGER NOT NULL,
+      categoryId INTEGER NULL,
+      FOREIGN KEY (categoryId) REFERENCES categories(id) ON DELETE SET NULL
+    );`);
+}
+
+async function getBrowserSqlite() {
+  if (browserSqlite) return browserSqlite;
+  if (typeof window.initSqlJs !== 'function') throw new Error('SQLite could not be loaded in this browser. Check your network connection and reload.');
+  const storage = await openBrowserStorage();
+  if (!storage) throw new Error('This browser does not support offline SQLite storage.');
+  const SQL = await window.initSqlJs({ locateFile: file => `https://cdn.jsdelivr.net/npm/sql.js@${browserSqlJsVersion}/dist/${file}` });
+  const stored = await readBrowserRecord(storage);
+  browserSqlite = stored?.sqlite ? new SQL.Database(new Uint8Array(stored.sqlite)) : new SQL.Database();
+  browserSchema(browserSqlite);
+
+  // Migrate the JSON snapshot created by the previous offline implementation once.
+  if (!stored?.sqlite && stored?.categories?.length) {
+    browserSqlite.run('BEGIN');
+    try {
+      for (const category of stored.categories) browserSqlite.run('INSERT OR IGNORE INTO categories (id, name) VALUES (?, ?)', [category.id, category.name]);
+      for (const task of stored.tasks || []) browserSqlite.run('INSERT OR REPLACE INTO tasks (id, title, priority, dueDate, isDone, categoryId) VALUES (?, ?, ?, ?, ?, ?)', [task.id, task.title, task.priority, task.dueDate, task.isDone ? 1 : 0, task.categoryId || null]);
+      browserSqlite.run('COMMIT');
+    } catch (error) {
+      browserSqlite.run('ROLLBACK');
+      throw error;
+    }
+  }
+  await writeBrowserRecord(storage, { sqlite: Array.from(browserSqlite.export()) });
+  return browserSqlite;
+}
+
 async function localData() {
-  const database = await openBrowserDatabase();
-  let stored = database ? await readBrowserRecord(database) : null;
-  if (!stored) stored = { tasks: [], categories: [] };
-  const categories = stored.categories || [];
-  const tasks = (stored.tasks || []).map(task => ({
-    ...task,
-    categoryName: categories.find(category => category.id === task.categoryId)?.name || ''
-  }));
-  if (database) database.close();
+  const database = await getBrowserSqlite();
+  const categories = browserRows(database, 'SELECT id, name FROM categories ORDER BY name').map(([id, name]) => ({ id, name }));
+  const categoryNames = new Map(categories.map(category => [category.id, category.name]));
+  const tasks = browserRows(database, 'SELECT id, title, priority, dueDate, isDone, categoryId FROM tasks ORDER BY id').map(([id, title, priority, dueDate, isDone, categoryId]) => ({ id, title, priority, dueDate, isDone: Boolean(isDone), categoryId, categoryName: categoryNames.get(categoryId) || '' }));
   return { tasks, categories };
 }
 
 async function saveLocalData(tasks, categories) {
-  const database = await openBrowserDatabase();
-  if (!database) throw new Error('This browser does not support offline storage.');
-  await writeBrowserRecord(database, { tasks, categories });
-  database.close();
+  const database = await getBrowserSqlite();
+  database.run('BEGIN');
+  try {
+    database.run('DELETE FROM tasks');
+    database.run('DELETE FROM categories');
+    for (const category of categories) database.run('INSERT INTO categories (id, name) VALUES (?, ?)', [category.id, category.name]);
+    for (const task of tasks) database.run('INSERT INTO tasks (id, title, priority, dueDate, isDone, categoryId) VALUES (?, ?, ?, ?, ?, ?)', [task.id, task.title, task.priority, task.dueDate, task.isDone ? 1 : 0, task.categoryId || null]);
+    database.run('COMMIT');
+  } catch (error) {
+    database.run('ROLLBACK');
+    throw error;
+  }
+  await writeBrowserRecord(browserStorage, { sqlite: Array.from(database.export()) });
 }
 
 function nextLocalId(items) { return items.reduce((highest, item) => Math.max(highest, Number(item.id) || 0), 0) + 1; }
