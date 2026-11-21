@@ -70,6 +70,43 @@ public class TaskFlowTests
     }
 
     [Fact]
+    public async Task HomeShowsAllOpenTasksWhenThereAreFewerThanThree()
+    {
+        var repository = new FakeRepository
+        {
+            Items =
+            [
+                new() { Title = "Only open task", Priority = 2 },
+                new() { Title = "Completed", Priority = 5, IsDone = true }
+            ]
+        };
+        var vm = new HomeViewModel(repository, new FakeNavigation());
+
+        await vm.RefreshAsync();
+
+        Assert.Single(vm.Items);
+        Assert.Equal("Only open task", vm.Items[0].Title);
+    }
+
+    [Fact]
+    public async Task HomeUsesDueDateToBreakEqualPriority()
+    {
+        var repository = new FakeRepository
+        {
+            Items =
+            [
+                new() { Title = "Later", Priority = 4, DueDate = new(2026, 12, 10) },
+                new() { Title = "Sooner", Priority = 4, DueDate = new(2026, 12, 1) }
+            ]
+        };
+        var vm = new HomeViewModel(repository, new FakeNavigation());
+
+        await vm.RefreshAsync();
+
+        Assert.Equal(new[] { "Sooner", "Later" }, vm.Items.Select(item => item.Title));
+    }
+
+    [Fact]
     public async Task EditLoadsByIdentifierAndSavesChanges()
     {
         var repository = new FakeRepository { Saved = new TodoItem { Id = 42, Title = "Old" } };
