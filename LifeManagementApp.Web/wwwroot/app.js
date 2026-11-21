@@ -42,7 +42,39 @@ async function saveTask(event) { event.preventDefault(); $('form-message').textC
 
 // The same PUT path handles completion toggles and edits, keeping persistence behavior identical.
 async function handleTaskAction(event) { const button = event.target.closest('[data-action]'); if (!button) return; const task = state.tasks.find(item => item.id === Number(button.dataset.id)); if (!task) return; try { if (button.dataset.action === 'edit') openDialog(task); if (button.dataset.action === 'toggle') await api(`/api/tasks/${task.id}`, { method:'PUT', body: JSON.stringify({ ...task, dueDate: task.dueDate, isDone: !task.isDone }) }); if (button.dataset.action === 'delete' && confirm(`Delete “${task.title}”?`)) await api(`/api/tasks/${task.id}`, { method:'DELETE' }); await load(); } catch (error) { $('task-message').textContent = error.message; } }
-async function loadWeather() { const city = $('city').value.trim(); $('weather-result').textContent = 'Loading weather…'; try { const weather = await api(`/api/weather?city=${encodeURIComponent(city)}`); const alert = weather.kitesurfConditions ? 'Kitesurf alert: conditions are available.' : 'Kitesurf alert: wind is below 5 m/s.'; $('weather-result').innerHTML = `<div class="weather-temp">${weather.temperature.toFixed(0)}°C</div><div>${escapeHtml(weather.description)} in ${escapeHtml(weather.city)}</div><small>Feels like ${weather.feelsLike.toFixed(0)}°C · Wind ${weather.windSpeed.toFixed(1)} m/s</small><div>${alert}</div>`; } catch (error) { $('weather-result').textContent = error.message; } }
+async function loadWeather() {
+  const city = $('city').value.trim();
+  $('weather-result').textContent = 'Loading weather…';
+  try {
+    let weather;
+    try {
+      // Prefer the local endpoint so the web host remains the single API contract.
+      weather = await api(`/api/weather?city=${encodeURIComponent(city)}`);
+    } catch {
+      // A blocked local .NET host should not make the public weather lookup unusable.
+      weather = await loadWeatherDirectly(city);
+    }
+    const alert = weather.kitesurfConditions ? 'Kitesurf alert: conditions are available.' : 'Kitesurf alert: wind is below 5 m/s.';
+    $('weather-result').innerHTML = `<div class="weather-temp">${weather.temperature.toFixed(0)}°C</div><div>${escapeHtml(weather.description)} in ${escapeHtml(weather.city)}</div><small>Feels like ${weather.feelsLike.toFixed(0)}°C · Wind ${weather.windSpeed.toFixed(1)} m/s</small><div>${alert}</div>`;
+  } catch (error) {
+    $('weather-result').textContent = error.message || 'Weather is unavailable right now.';
+  }
+}
+
+async function loadWeatherDirectly(city) {
+  if (!city) throw new Error('Enter a city.');
+  const locationResponse = await fetch(`https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=1&language=en&format=json`);
+  if (!locationResponse.ok) throw new Error('Weather lookup failed.');
+  const location = (await locationResponse.json()).results?.[0];
+  if (!location) throw new Error('Location was not found.');
+  const forecastResponse = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${location.latitude}&longitude=${location.longitude}&current=temperature_2m,apparent_temperature,weather_code,wind_speed_10m&wind_speed_unit=ms&timezone=auto`);
+  if (!forecastResponse.ok) throw new Error('Weather data was unavailable.');
+  const current = (await forecastResponse.json()).current;
+  if (!current) throw new Error('Weather data was unavailable.');
+  return { city: location.name || city, temperature: current.temperature_2m, feelsLike: current.apparent_temperature, windSpeed: current.wind_speed_10m, kitesurfConditions: current.wind_speed_10m >= 5, description: describeWeatherCode(current.weather_code) };
+}
+
+function describeWeatherCode(code) { return ({ 0:'Clear sky', 1:'Mostly clear', 2:'Mostly clear', 3:'Overcast', 45:'Foggy', 48:'Foggy', 51:'Drizzle', 53:'Drizzle', 55:'Drizzle', 61:'Rain', 63:'Rain', 65:'Rain', 71:'Snow', 73:'Snow', 75:'Snow', 80:'Rain showers', 81:'Rain showers', 82:'Rain showers', 95:'Thunderstorm', 96:'Thunderstorm', 99:'Thunderstorm' })[code] || 'Unknown conditions'; }
 
 async function addCategory() { const name = $('new-category').value.trim(); if (!name) return; try { await api('/api/categories', { method:'POST', body: JSON.stringify({ name }) }); $('new-category').value = ''; await load(); } catch (error) { $('task-message').textContent = error.message; } }
 
