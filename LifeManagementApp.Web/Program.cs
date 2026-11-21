@@ -9,6 +9,8 @@ var builder = WebApplication.CreateBuilder(args);
 // LIFE_APP_DATABASE_PATH makes isolated test runs possible without changing source code.
 var databasePath = Environment.GetEnvironmentVariable("LIFE_APP_DATABASE_PATH")
     ?? Path.Combine(AppContext.BaseDirectory, "tasks.db");
+var databaseDirectory = Path.GetDirectoryName(Path.GetFullPath(databasePath));
+if (!string.IsNullOrWhiteSpace(databaseDirectory)) Directory.CreateDirectory(databaseDirectory);
 
 builder.Services.AddDbContextFactory<AppDbContext>(options =>
     options.UseSqlite($"Data Source={databasePath}"));
@@ -16,6 +18,14 @@ builder.Services.AddScoped<ITodoRepository, TodoRepository>();
 builder.Services.AddHttpClient<IWeatherService, OpenMeteoWeatherService>();
 
 var app = builder.Build();
+
+// Create the SQLite schema before accepting requests so a fresh deployment has
+// a ready database even when the first request is a weather or static-file call.
+await using (var startupScope = app.Services.CreateAsyncScope())
+{
+    var repository = startupScope.ServiceProvider.GetRequiredService<ITodoRepository>();
+    await repository.InitializeAsync();
+}
 
 // Static files contain the browser shell; the API endpoints below provide its data contract.
 app.UseDefaultFiles();
