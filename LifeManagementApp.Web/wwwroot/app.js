@@ -2,6 +2,7 @@ const state = { tasks: [], categories: [], editing: null, categoryId: '', sort: 
 const $ = id => document.getElementById(id);
 const today = () => new Date().toISOString().slice(0, 10);
 const dateText = value => new Date(value).toLocaleDateString(undefined, { dateStyle: 'medium' });
+const localStorageKeys = { tasks: 'life-management.tasks', categories: 'life-management.categories' };
 
 // Keep fetch error handling in one place so every form displays API validation consistently.
 async function api(url, options) {
@@ -10,11 +11,37 @@ async function api(url, options) {
   return response.status === 204 ? null : response.json();
 }
 
+// Keep a browser-only copy of the data so the UI remains usable when the local
+// ASP.NET host is unavailable or blocked by Windows application control.
+function localData() {
+  const categories = JSON.parse(localStorage.getItem(localStorageKeys.categories) || '[]');
+  const tasks = JSON.parse(localStorage.getItem(localStorageKeys.tasks) || '[]').map(task => ({
+    ...task,
+    categoryName: categories.find(category => category.id === task.categoryId)?.name || ''
+  }));
+  return { tasks, categories };
+}
+
+function saveLocalData(tasks, categories) {
+  localStorage.setItem(localStorageKeys.tasks, JSON.stringify(tasks));
+  localStorage.setItem(localStorageKeys.categories, JSON.stringify(categories));
+}
+
+function nextLocalId(items) { return items.reduce((highest, item) => Math.max(highest, Number(item.id) || 0), 0) + 1; }
+
 async function load() {
   // Load both resources together so the UI never renders a category selector
   // against a task list from a different database snapshot.
-  try { [state.tasks, state.categories] = await Promise.all([api('/api/tasks'), api('/api/categories')]); render(); }
-  catch (error) { $('task-message').textContent = error.message; }
+  try {
+    [state.tasks, state.categories] = await Promise.all([api('/api/tasks'), api('/api/categories')]);
+    render();
+  } catch {
+    // Fall back to browser storage instead of leaving the page unusable when
+    // the local .NET API cannot start under the device's security policy.
+    ({ tasks: state.tasks, categories: state.categories } = localData());
+    render();
+    $('task-message').textContent = 'Offline mode: tasks are saved in this browser.';
+  }
 }
 
 function taskMarkup(task) {
@@ -78,10 +105,66 @@ function describeWeatherCode(code) { return ({ 0:'Clear sky', 1:'Mostly clear', 
 
 async function addCategory() { const name = $('new-category').value.trim(); if (!name) return; try { await api('/api/categories', { method:'POST', body: JSON.stringify({ name }) }); $('new-category').value = ''; await load(); } catch (error) { $('task-message').textContent = error.message; } }
 
+// These browser-only handlers preserve the same task interactions when the
+// ASP.NET API is unavailable; the server-backed handlers remain the default.
+async function saveTaskWithFallback(event) {
+  event.preventDefault();
+  $('form-message').textContent = '';
+  const task = { title: $('task-title').value, priority: Number($('task-priority').value), dueDate: $('task-due').value, categoryId: $('task-category').value ? Number($('task-category').value) : null, isDone: state.editing?.isDone || false };
+  try {
+    const id = $('task-id').value;
+    await api(id ? `/api/tasks/${id}` : '/api/tasks', { method: id ? 'PUT' : 'POST', body: JSON.stringify(task) });
+  } catch {
+    const data = localData();
+    const id = Number($('task-id').value);
+    if (id) {
+      const index = data.tasks.findIndex(item => item.id === id);
+      if (index >= 0) data.tasks[index] = { ...data.tasks[index], ...task };
+    } else data.tasks.push({ ...task, id: nextLocalId(data.tasks) });
+    saveLocalData(data.tasks, data.categories);
+  }
+  $('task-dialog').close();
+  await load();
+}
+
+async function handleTaskActionWithFallback(event) {
+  const button = event.target.closest('[data-action]');
+  if (!button) return;
+  const task = state.tasks.find(item => item.id === Number(button.dataset.id));
+  if (!task) return;
+  if (button.dataset.action === 'edit') { openDialog(task); return; }
+  if (button.dataset.action === 'delete' && !confirm(`Delete “${task.title}”?`)) return;
+  try {
+    if (button.dataset.action === 'toggle') await api(`/api/tasks/${task.id}`, { method:'PUT', body: JSON.stringify({ ...task, isDone: !task.isDone }) });
+    if (button.dataset.action === 'delete') await api(`/api/tasks/${task.id}`, { method:'DELETE' });
+  } catch {
+    const data = localData();
+    if (button.dataset.action === 'toggle') {
+      const localTask = data.tasks.find(item => item.id === task.id);
+      if (localTask) localTask.isDone = !localTask.isDone;
+    } else data.tasks = data.tasks.filter(item => item.id !== task.id);
+    saveLocalData(data.tasks, data.categories);
+  }
+  await load();
+}
+
+async function addCategoryWithFallback() {
+  const name = $('new-category').value.trim();
+  if (!name) return;
+  try { await api('/api/categories', { method:'POST', body: JSON.stringify({ name }) }); }
+  catch {
+    const data = localData();
+    data.categories.push({ id: nextLocalId(data.categories), name });
+    saveLocalData(data.tasks, data.categories);
+  }
+  $('new-category').value = '';
+  await load();
+}
+
 document.querySelectorAll('.nav-button').forEach(button => button.addEventListener('click', () => showView(button.dataset.view)));
 ['open-tasks'].forEach(id => $(id).addEventListener('click', () => showView('tasks')));
 ['add-task','home-add'].forEach(id => $(id).addEventListener('click', () => openDialog()));
-document.querySelectorAll('.task-list').forEach(list => list.addEventListener('click', handleTaskAction));
-$('task-form').addEventListener('submit', saveTask); $('task-priority').addEventListener('input', () => $('priority-output').value = $('task-priority').value); $('weather-load').addEventListener('click', loadWeather); $('weather-refresh').addEventListener('click', loadWeather);
-$('filter-category').addEventListener('change', event => { state.categoryId = event.target.value; render(); }); $('sort-tasks').addEventListener('change', event => { state.sort = event.target.value; render(); }); $('add-category').addEventListener('click', addCategory);
+document.querySelectorAll('.task-list').forEach(list => list.addEventListener('click', handleTaskActionWithFallback));
+$('task-form').addEventListener('submit', saveTaskWithFallback); $('task-priority').addEventListener('input', () => $('priority-output').value = $('task-priority').value); $('weather-load').addEventListener('click', loadWeather); $('weather-refresh').addEventListener('click', loadWeather);
+$('filter-category').addEventListener('change', event => { state.categoryId = event.target.value; render(); }); $('sort-tasks').addEventListener('change', event => { state.sort = event.target.value; render(); }); $('add-category').addEventListener('click', addCategoryWithFallback);
 load();
