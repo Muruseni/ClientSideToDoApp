@@ -7,6 +7,7 @@ namespace LifeManagementApp.Services;
 
 public class TodoRepository(IDbContextFactory<AppDbContext> contextFactory) : ITodoRepository
 {
+    // A factory creates short-lived contexts, which is safe for both UI and concurrent web requests.
     private readonly SemaphoreSlim initializationLock = new(1, 1);
     private bool initialized;
 
@@ -31,6 +32,7 @@ public class TodoRepository(IDbContextFactory<AppDbContext> contextFactory) : IT
     {
         await InitializeAsync();
         await using var db = await contextFactory.CreateDbContextAsync();
+        // Read-only screens do not need EF change tracking, but they do need category labels.
         return await db.TodoItems.AsNoTracking().Include(item => item.Category).ToListAsync();
     }
 

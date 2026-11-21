@@ -4,6 +4,7 @@ namespace LifeManagementApp.Services;
 
 public interface ITodoRepository
 {
+    // Initialization is explicit so UI and web callers can share the same lazy database setup.
     Task InitializeAsync();
     Task<IReadOnlyList<TodoItem>> GetAllAsync();
     Task<TodoItem?> GetByIdAsync(int id);

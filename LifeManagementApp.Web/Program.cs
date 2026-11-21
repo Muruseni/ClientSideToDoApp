@@ -17,6 +17,7 @@ builder.Services.AddHttpClient<IWeatherService, OpenMeteoWeatherService>();
 
 var app = builder.Build();
 
+// Static files contain the browser shell; the API endpoints below provide its data contract.
 app.UseDefaultFiles();
 app.UseStaticFiles();
 
@@ -40,6 +41,7 @@ app.MapPost("/api/tasks", async (TaskRequest request, ITodoRepository repository
         CategoryId = request.CategoryId
     };
 
+    // Validate through the shared repository so browser and MAUI rules cannot diverge.
     try
     {
         await repository.AddAsync(item);
@@ -105,6 +107,7 @@ app.MapDelete("/api/categories/{id:int}", async (int id, AppDbContext db) =>
     await db.Database.EnsureCreatedAsync();
     var category = await db.Categories.FindAsync(id);
     if (category is null) return Results.NotFound();
+    // Refuse destructive relationship changes; callers must reassign tasks first.
     if (await db.TodoItems.AnyAsync(item => item.CategoryId == id)) return Results.Conflict(new { message = "Category still has tasks." });
     db.Categories.Remove(category);
     await db.SaveChangesAsync();

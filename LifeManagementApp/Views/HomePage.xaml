@@ -11,6 +11,7 @@
             <Label Text="Life Management" FontSize="28" FontAttributes="Bold" />
             <Label Text="A calm place for today’s priorities." Style="{StaticResource CaptionLabel}" />
         </VerticalStackLayout>
+        <!-- Weather is optional: the page keeps task content usable when the network fails. -->
         <Border Grid.Row="1" Style="{StaticResource CardBorder}">
             <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto,Auto" ColumnSpacing="12" RowSpacing="8">
                 <Label Text="Weather" FontSize="20" FontAttributes="Bold" />

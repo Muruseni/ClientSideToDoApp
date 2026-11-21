@@ -8,6 +8,7 @@ namespace LifeManagementApp.ViewModels;
 
 public partial class HomeViewModel(ITodoRepository repository, INavigationService navigation, IWeatherService? weatherService = null) : ObservableObject
 {
+    // The optional weather service keeps task previews testable without network access.
     public ObservableCollection<TodoItem> Items { get; } = [];
     [ObservableProperty] private string errorMessage = string.Empty;
     [ObservableProperty] private string city = "Kyiv";
@@ -21,6 +22,7 @@ public partial class HomeViewModel(ITodoRepository repository, INavigationServic
         {
             var items = await repository.GetAllAsync();
             Items.Clear();
+            // The home page is intentionally a short priority preview, not a second task list.
             foreach (var item in items
                 .Where(item => !item.IsDone)
                 .OrderByDescending(item => item.Priority)
@@ -45,6 +47,7 @@ public partial class HomeViewModel(ITodoRepository repository, INavigationServic
     [RelayCommand]
     private async Task LoadWeatherAsync()
     {
+        // Prevent duplicate requests when refresh is tapped repeatedly while the network is busy.
         if (weatherService is null || IsWeatherBusy) return;
         IsWeatherBusy = true;
         WeatherError = string.Empty;

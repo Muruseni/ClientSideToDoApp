@@ -7,6 +7,7 @@
             <Label Text="To-dos" FontSize="28" FontAttributes="Bold" />
             <Label Text="Keep the important things moving." Style="{StaticResource CaptionLabel}" />
         </VerticalStackLayout>
+        <!-- Filtering and sorting are local view concerns over one repository snapshot. -->
         <Grid Grid.Row="1" ColumnDefinitions="*,*" ColumnSpacing="8">
             <Picker Title="All categories" ItemsSource="{Binding Categories}" SelectedItem="{Binding SelectedCategory}" ItemDisplayBinding="{Binding Name}" />
             <Picker Grid.Column="1" Title="Sort by" ItemsSource="{Binding SortOptions}" SelectedItem="{Binding SelectedSort}" />

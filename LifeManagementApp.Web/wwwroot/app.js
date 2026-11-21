@@ -3,6 +3,7 @@ const $ = id => document.getElementById(id);
 const today = () => new Date().toISOString().slice(0, 10);
 const dateText = value => new Date(value).toLocaleDateString(undefined, { dateStyle: 'medium' });
 
+// Keep fetch error handling in one place so every form displays API validation consistently.
 async function api(url, options) {
   const response = await fetch(url, { headers: { 'Content-Type': 'application/json' }, ...options });
   if (!response.ok) { const body = await response.json().catch(() => ({})); throw new Error(body.message || Object.values(body.errors || {}).flat().join(' ') || 'The request failed.'); }
@@ -21,6 +22,7 @@ function taskMarkup(task) {
 }
 
 function render() {
+  // Filtering happens before sorting so the selected sort order applies only to visible tasks.
   const filtered = state.tasks.filter(task => !state.categoryId || String(task.categoryId) === state.categoryId);
   const sorted = [...filtered].sort((a, b) => state.sort === 'due' ? new Date(a.dueDate) - new Date(b.dueDate) : state.sort === 'title' ? a.title.localeCompare(b.title) : b.priority - a.priority || new Date(a.dueDate) - new Date(b.dueDate));
   const open = sorted.filter(task => !task.isDone);
@@ -38,6 +40,7 @@ function openDialog(task = null) { state.editing = task; $('dialog-title').textC
 
 async function saveTask(event) { event.preventDefault(); $('form-message').textContent = ''; const task = { title: $('task-title').value, priority: Number($('task-priority').value), dueDate: $('task-due').value, categoryId: $('task-category').value ? Number($('task-category').value) : null, isDone: state.editing?.isDone || false }; try { const id = $('task-id').value; await api(id ? `/api/tasks/${id}` : '/api/tasks', { method: id ? 'PUT' : 'POST', body: JSON.stringify(task) }); $('task-dialog').close(); await load(); } catch (error) { $('form-message').textContent = error.message; } }
 
+// The same PUT path handles completion toggles and edits, keeping persistence behavior identical.
 async function handleTaskAction(event) { const button = event.target.closest('[data-action]'); if (!button) return; const task = state.tasks.find(item => item.id === Number(button.dataset.id)); if (!task) return; try { if (button.dataset.action === 'edit') openDialog(task); if (button.dataset.action === 'toggle') await api(`/api/tasks/${task.id}`, { method:'PUT', body: JSON.stringify({ ...task, dueDate: task.dueDate, isDone: !task.isDone }) }); if (button.dataset.action === 'delete' && confirm(`Delete “${task.title}”?`)) await api(`/api/tasks/${task.id}`, { method:'DELETE' }); await load(); } catch (error) { $('task-message').textContent = error.message; } }
 async function loadWeather() { const city = $('city').value.trim(); $('weather-result').textContent = 'Loading weather…'; try { const weather = await api(`/api/weather?city=${encodeURIComponent(city)}`); const alert = weather.kitesurfConditions ? 'Kitesurf alert: conditions are available.' : 'Kitesurf alert: wind is below 5 m/s.'; $('weather-result').innerHTML = `<div class="weather-temp">${weather.temperature.toFixed(0)}°C</div><div>${escapeHtml(weather.description)} in ${escapeHtml(weather.city)}</div><small>Feels like ${weather.feelsLike.toFixed(0)}°C · Wind ${weather.windSpeed.toFixed(1)} m/s</small><div>${alert}</div>`; } catch (error) { $('weather-result').textContent = error.message; } }
 

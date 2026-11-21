@@ -5,6 +5,7 @@ namespace LifeManagementApp.Tests;
 
 public class TodoItemTests
 {
+    // These tests lock down the validation contract used by both clients.
     [Theory]
     [InlineData("")]
     [InlineData("   ")]

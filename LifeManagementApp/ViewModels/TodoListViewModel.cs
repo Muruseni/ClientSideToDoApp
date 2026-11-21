@@ -8,6 +8,7 @@ namespace LifeManagementApp.ViewModels;
 
 public partial class TodoListViewModel(ITodoRepository repository, INavigationService navigation) : ObservableObject
 {
+    // allItems is the current repository snapshot; Items is the filtered/sorted projection shown by XAML.
     public ObservableCollection<TodoItem> Items { get; } = [];
     public ObservableCollection<Category> Categories { get; } = [];
     public IReadOnlyList<string> SortOptions { get; } = ["Priority", "Due date", "Title"];
@@ -36,6 +37,7 @@ public partial class TodoListViewModel(ITodoRepository repository, INavigationSe
 
     private void ApplyFilters()
     {
+        // Reapply both choices together so changing one control never discards the other.
         var filtered = allItems.Where(item => SelectedCategory is null || item.CategoryId == SelectedCategory.Id);
         filtered = SelectedSort switch
         {
@@ -51,6 +53,7 @@ public partial class TodoListViewModel(ITodoRepository repository, INavigationSe
     [RelayCommand]
     private async Task AddCategoryAsync()
     {
+        // Trim before persistence so visually identical categories are not created accidentally.
         var name = NewCategoryName.Trim();
         if (string.IsNullOrWhiteSpace(name)) { ErrorMessage = "Enter a category name."; return; }
 

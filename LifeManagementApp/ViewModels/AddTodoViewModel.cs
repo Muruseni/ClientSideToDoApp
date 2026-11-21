@@ -8,6 +8,7 @@ namespace LifeManagementApp.ViewModels;
 
 public partial class AddTodoViewModel(ITodoRepository repository, INavigationService navigation) : ObservableObject
 {
+    // This view model owns form validation; repository validation remains the final safety net.
     [ObservableProperty] private string title = string.Empty;
     [ObservableProperty] private int priority = 3;
     [ObservableProperty] private DateTime dueDate = DateTime.Today;
@@ -21,6 +22,7 @@ public partial class AddTodoViewModel(ITodoRepository repository, INavigationSer
     {
         try
         {
+            // Reload instead of caching because categories can be created from the list screen.
             Categories.Clear();
             foreach (var category in await repository.GetCategoriesAsync()) Categories.Add(category);
             ErrorMessage = string.Empty;

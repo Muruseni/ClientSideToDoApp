@@ -6,6 +6,7 @@ namespace LifeManagementApp.Tests;
 
 public class TaskFlowTests
 {
+    // Fake services keep view-model behavior testable without launching MAUI UI.
     [Fact]
     public async Task AddRejectsBlankThenSavesTrimmedTitleAndReturns()
     {

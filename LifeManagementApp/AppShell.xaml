@@ -4,6 +4,7 @@
        xmlns:views="clr-namespace:LifeManagementApp.Views"
        x:Class="LifeManagementApp.AppShell" Shell.FlyoutBehavior="Flyout"
        Title="Life Management">
+    <!-- The two top-level destinations remain available in the flyout on every platform. -->
     <ShellContent Title="Home" Route="home" ContentTemplate="{DataTemplate views:HomePage}" />
     <ShellContent Title="To-dos" Route="todos" ContentTemplate="{DataTemplate views:TodoListPage}" />
 </Shell>

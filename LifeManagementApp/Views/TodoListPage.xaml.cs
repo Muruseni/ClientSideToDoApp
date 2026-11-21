@@ -15,6 +15,7 @@ public partial class TodoListPage : ContentPage
     protected override async void OnAppearing()
     {
         base.OnAppearing();
+        // Reload categories and tasks after returning from add/edit flows.
         await viewModel.RefreshAsync();
     }
 }

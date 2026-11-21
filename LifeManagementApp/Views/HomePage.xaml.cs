@@ -16,6 +16,7 @@ public partial class HomePage : ContentPage
     protected override async void OnAppearing()
     {
         base.OnAppearing();
+        // Refresh on each appearance so returning from a task edit shows current data.
         await viewModel.RefreshAsync();
     }
 }

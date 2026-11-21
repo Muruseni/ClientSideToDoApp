@@ -10,7 +10,7 @@ Install the .NET 9 SDK and the `maui-windows` workload, then run:
 dotnet build LifeManagementApp/LifeManagementApp.csproj -f net9.0-windows10.0.19041.0
 ```
 
-The app currently contains the standard MAUI starter screen. Task storage and weather are planned in the project issues.
+The MAUI client now contains task storage, task CRUD, categories, sorting/filtering, and a weather card. The browser client is available in [LifeManagementApp.Web](LifeManagementApp.Web) for machines where Windows Application Control blocks the MAUI executable.
 
 ## Storage
 

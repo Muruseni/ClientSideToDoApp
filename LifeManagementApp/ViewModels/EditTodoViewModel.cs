@@ -7,6 +7,7 @@ namespace LifeManagementApp.ViewModels;
 
 public partial class EditTodoViewModel(ITodoRepository repository, INavigationService navigation) : ObservableObject
 {
+    // Keep the loaded entity private and expose only editable scalar fields to the page.
     private TodoItem? item;
     [ObservableProperty] private string title = string.Empty;
     [ObservableProperty] private int priority = 3;

@@ -10,11 +10,13 @@ public sealed class OpenMeteoWeatherService(HttpClient httpClient) : IWeatherSer
     {
         if (string.IsNullOrWhiteSpace(city)) throw new ArgumentException("Enter a city.", nameof(city));
 
+        // Open-Meteo requires coordinates, so weather lookup is a two-step geocode-then-forecast flow.
         var location = await httpClient.GetFromJsonAsync<GeocodingResponse>(
             $"https://geocoding-api.open-meteo.com/v1/search?name={Uri.EscapeDataString(city.Trim())}&count=1&language=en&format=json",
             cancellationToken) ?? throw new InvalidOperationException("Location was not found.");
         var result = location.Results?.FirstOrDefault() ?? throw new InvalidOperationException("Location was not found.");
 
+        // Ask the API for m/s directly; converting after the response could introduce unit mistakes.
         var forecast = await httpClient.GetFromJsonAsync<ForecastResponse>(
             $"https://api.open-meteo.com/v1/forecast?latitude={result.Latitude}&longitude={result.Longitude}&current=temperature_2m,apparent_temperature,weather_code,wind_speed_10m&wind_speed_unit=ms&timezone=auto",
             cancellationToken) ?? throw new InvalidOperationException("Weather data was unavailable.");

@@ -15,6 +15,7 @@ public partial class AddTodoPage : ContentPage
     protected override async void OnAppearing()
     {
         base.OnAppearing();
+        // Categories may have changed since the page was first constructed.
         await ViewModel.LoadAsync();
     }
 }
