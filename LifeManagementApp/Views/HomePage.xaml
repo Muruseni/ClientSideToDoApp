@@ -15,9 +15,9 @@
         <Border Grid.Row="1" Style="{StaticResource CardBorder}">
             <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto,Auto" ColumnSpacing="12" RowSpacing="8">
                 <Label Text="Weather" FontSize="20" FontAttributes="Bold" />
-                <Button Grid.Column="1" Text="Refresh" Style="{StaticResource SecondaryButton}" Command="{Binding LoadWeatherCommand}" />
-                <Entry Grid.Row="1" Placeholder="City" Text="{Binding City}" ReturnType="Search" />
-                <Button Grid.Row="1" Grid.Column="1" Text="Get weather" Command="{Binding LoadWeatherCommand}" />
+                <Button Grid.Column="1" Text="Refresh" SemanticProperties.Description="Refresh current weather" Style="{StaticResource SecondaryButton}" Command="{Binding LoadWeatherCommand}" />
+                <Entry Grid.Row="1" Placeholder="City" SemanticProperties.Description="City for weather lookup" Text="{Binding City}" ReturnType="Search" />
+                <Button Grid.Row="1" Grid.Column="1" Text="Get weather" SemanticProperties.Description="Get weather for the entered city" Command="{Binding LoadWeatherCommand}" />
                 <ActivityIndicator Grid.Row="2" IsRunning="{Binding IsWeatherBusy}" />
                 <Label Grid.Row="2" Grid.Column="1" Text="{Binding WeatherError}" TextColor="Red" />
                 <VerticalStackLayout Grid.Row="3" Grid.ColumnSpan="2" Spacing="2">
