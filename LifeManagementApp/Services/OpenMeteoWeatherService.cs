@@ -16,7 +16,7 @@ public sealed class OpenMeteoWeatherService(HttpClient httpClient) : IWeatherSer
         var result = location.Results?.FirstOrDefault() ?? throw new InvalidOperationException("Location was not found.");
 
         var forecast = await httpClient.GetFromJsonAsync<ForecastResponse>(
-            $"https://api.open-meteo.com/v1/forecast?latitude={result.Latitude}&longitude={result.Longitude}&current=temperature_2m,apparent_temperature,weather_code,wind_speed_10m&timezone=auto",
+            $"https://api.open-meteo.com/v1/forecast?latitude={result.Latitude}&longitude={result.Longitude}&current=temperature_2m,apparent_temperature,weather_code,wind_speed_10m&wind_speed_unit=ms&timezone=auto",
             cancellationToken) ?? throw new InvalidOperationException("Weather data was unavailable.");
         var current = forecast.Current ?? throw new InvalidOperationException("Weather data was unavailable.");
 

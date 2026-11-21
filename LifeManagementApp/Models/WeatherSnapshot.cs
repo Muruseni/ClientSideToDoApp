@@ -6,4 +6,8 @@ public sealed record WeatherSnapshot(
     double FeelsLike,
     double WindSpeed,
     string Description,
-    DateTime LocalTime);
+    DateTime LocalTime)
+{
+    // The course requirement treats 5 m/s as the inclusive kitesurf threshold.
+    public bool KitesurfConditions => WindSpeed >= 5;
+}

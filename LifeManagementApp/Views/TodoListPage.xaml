@@ -2,13 +2,21 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui" xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:vm="clr-namespace:LifeManagementApp.ViewModels" xmlns:models="clr-namespace:LifeManagementApp.Models"
              x:Class="LifeManagementApp.Views.TodoListPage" x:Name="Page" x:DataType="vm:TodoListViewModel" Title="To-dos">
-    <Grid Padding="24" RowDefinitions="Auto,Auto,*,Auto" RowSpacing="12">
+    <Grid Padding="24" RowDefinitions="Auto,Auto,Auto,Auto,*,Auto" RowSpacing="12">
         <VerticalStackLayout Spacing="4">
             <Label Text="To-dos" FontSize="28" FontAttributes="Bold" />
             <Label Text="Keep the important things moving." Style="{StaticResource CaptionLabel}" />
         </VerticalStackLayout>
-        <Label Grid.Row="1" Text="{Binding ErrorMessage}" TextColor="Red" />
-        <CollectionView Grid.Row="2" ItemsSource="{Binding Items}" EmptyView="No tasks yet. Add one to get started.">
+        <Grid Grid.Row="1" ColumnDefinitions="*,*" ColumnSpacing="8">
+            <Picker Title="All categories" ItemsSource="{Binding Categories}" SelectedItem="{Binding SelectedCategory}" ItemDisplayBinding="{Binding Name}" />
+            <Picker Grid.Column="1" Title="Sort by" ItemsSource="{Binding SortOptions}" SelectedItem="{Binding SelectedSort}" />
+        </Grid>
+        <Grid Grid.Row="2" ColumnDefinitions="*,Auto" ColumnSpacing="8">
+            <Entry Placeholder="New category" Text="{Binding NewCategoryName}" />
+            <Button Grid.Column="1" Text="Add category" Command="{Binding AddCategoryCommand}" Style="{StaticResource SecondaryButton}" />
+        </Grid>
+        <Label Grid.Row="3" Text="{Binding ErrorMessage}" TextColor="Red" />
+        <CollectionView Grid.Row="4" ItemsSource="{Binding Items}" EmptyView="No tasks yet. Add one to get started.">
             <CollectionView.ItemTemplate>
                 <DataTemplate x:DataType="models:TodoItem">
                     <Border Style="{StaticResource CardBorder}" Margin="0,0,0,10">
@@ -33,6 +41,6 @@
                 </DataTemplate>
             </CollectionView.ItemTemplate>
         </CollectionView>
-        <Button Grid.Row="3" Text="Add a to-do" Command="{Binding AddCommand}" />
+        <Button Grid.Row="5" Text="Add a to-do" Command="{Binding AddCommand}" />
     </Grid>
 </ContentPage>

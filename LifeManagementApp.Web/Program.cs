@@ -86,6 +86,31 @@ app.MapDelete("/api/tasks/{id:int}", async (int id, ITodoRepository repository) 
 app.MapGet("/api/categories", async (ITodoRepository repository) =>
     Results.Ok(await repository.GetCategoriesAsync()));
 
+app.MapPost("/api/categories", async (CategoryRequest request, ITodoRepository repository) =>
+{
+    var category = new Category { Name = request.Name?.Trim() ?? string.Empty };
+    try
+    {
+        await repository.AddCategoryAsync(category);
+        return Results.Created($"/api/categories/{category.Id}", category);
+    }
+    catch (ValidationException exception)
+    {
+        return Results.ValidationProblem(new Dictionary<string, string[]> { ["category"] = [exception.Message] });
+    }
+});
+
+app.MapDelete("/api/categories/{id:int}", async (int id, AppDbContext db) =>
+{
+    await db.Database.EnsureCreatedAsync();
+    var category = await db.Categories.FindAsync(id);
+    if (category is null) return Results.NotFound();
+    if (await db.TodoItems.AnyAsync(item => item.CategoryId == id)) return Results.Conflict(new { message = "Category still has tasks." });
+    db.Categories.Remove(category);
+    await db.SaveChangesAsync();
+    return Results.NoContent();
+});
+
 app.MapGet("/api/weather", async (string city, IWeatherService weatherService, CancellationToken cancellationToken) =>
 {
     try { return Results.Ok(await weatherService.GetCurrentAsync(city, cancellationToken)); }
@@ -101,4 +126,5 @@ static TaskResponse ToTaskResponse(TodoItem item) => new(
     item.CategoryId, item.Category?.Name);
 
 record TaskRequest(string? Title, int Priority, DateTime? DueDate, int? CategoryId, bool IsDone = false);
+record CategoryRequest(string? Name);
 record TaskResponse(int Id, string Title, int Priority, DateTime DueDate, bool IsDone, int? CategoryId, string? CategoryName);

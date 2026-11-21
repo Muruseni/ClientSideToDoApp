@@ -28,5 +28,7 @@ dotnet run --project LifeManagementApp.Web/LifeManagementApp.Web.csproj
 
 Open the local URL printed by ASP.NET Core, normally `http://localhost:5000` or `https://localhost:7000`. The web host creates its SQLite database beside the web app unless `LIFE_APP_DATABASE_PATH` is set.
 
+The task list supports priority, due-date and title sorting, category filtering, and category creation. Weather wind speed is reported in metres per second; the kitesurf alert is active at 5 m/s or above.
+
 
 For isolated development checks, set `LIFE_APP_DATABASE_PATH` to an absolute SQLite file path before starting the app. Without it, the normal app-data location is used.

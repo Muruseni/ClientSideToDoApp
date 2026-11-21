@@ -86,6 +86,50 @@ public class TaskFlowTests
         await vm.RefreshAsync(); Assert.Equal(new[] { "Soon", "Later", "Low" }, vm.Items.Select(x => x.Title));
     }
 
+    [Fact]
+    public async Task ListFiltersByCategoryAndSupportsTitleSort()
+    {
+        var work = new Category { Id = 1, Name = "Work" };
+        var repository = new FakeRepository
+        {
+            Categories = [work],
+            Items =
+            [
+                new() { Title = "Zebra", CategoryId = 1 },
+                new() { Title = "Alpha", CategoryId = 1 },
+                new() { Title = "Other", CategoryId = 2 }
+            ]
+        };
+        var vm = new TodoListViewModel(repository, new FakeNavigation()) { SelectedCategory = work, SelectedSort = "Title" };
+
+        await vm.RefreshAsync();
+
+        Assert.Equal(new[] { "Alpha", "Zebra" }, vm.Items.Select(item => item.Title));
+    }
+
+    [Fact]
+    public async Task ListCanCreateAndSelectCategory()
+    {
+        var repository = new FakeRepository(); var vm = new TodoListViewModel(repository, new FakeNavigation()) { NewCategoryName = "  Work  " };
+
+        await vm.AddCategoryCommand.ExecuteAsync(null);
+
+        Assert.Equal("Work", repository.Categories.Single().Name);
+        Assert.Same(repository.Categories.Single(), vm.SelectedCategory);
+        Assert.Empty(vm.NewCategoryName);
+    }
+
+    [Theory]
+    [InlineData(4.99, false)]
+    [InlineData(5, true)]
+    [InlineData(5.01, true)]
+    public void KitesurfAlertUsesInclusiveFiveMetreThreshold(double windSpeed, bool expected)
+    {
+        var snapshot = new WeatherSnapshot("Kyiv", 20, 20, windSpeed, "Clear sky", DateTime.UtcNow);
+
+        Assert.Equal(expected, snapshot.KitesurfConditions);
+    }
+
     private sealed class FakeNavigation : INavigationService
     {
         public bool WentBack { get; private set; }
@@ -107,6 +151,11 @@ public class TaskFlowTests
         public Task UpdateAsync(TodoItem item) { Saved = item; return Task.CompletedTask; }
         public Task DeleteAsync(int id) => Task.CompletedTask;
         public Task<IReadOnlyList<Category>> GetCategoriesAsync() => Task.FromResult<IReadOnlyList<Category>>(Categories);
-        public Task AddCategoryAsync(Category category) => Task.CompletedTask;
+        public Task AddCategoryAsync(Category category)
+        {
+            category.Id = Categories.Count + 1;
+            Categories.Add(category);
+            return Task.CompletedTask;
+        }
     }
 }
