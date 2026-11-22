@@ -1,4 +1,4 @@
-const state = { tasks: [], categories: [], editing: null, categoryId: '', sort: 'priority' };
+const state = { tasks: [], categories: [], editing: null, categoryId: '', sort: 'priority', showArchived: false, hideDone: false };
 const $ = id => document.getElementById(id);
 const today = () => new Date().toISOString().slice(0, 10);
 const dateText = value => new Date(value).toLocaleDateString(undefined, { dateStyle: 'medium' });
@@ -60,9 +60,12 @@ function browserSchema(database) {
       priority INTEGER NOT NULL,
       dueDate TEXT NOT NULL,
       isDone INTEGER NOT NULL,
+      archived INTEGER NOT NULL DEFAULT 0,
       categoryId INTEGER NULL,
-      FOREIGN KEY (categoryId) REFERENCES categories(id) ON DELETE SET NULL
+    FOREIGN KEY (categoryId) REFERENCES categories(id) ON DELETE SET NULL
     );`);
+  const columns = browserRows(database, "PRAGMA table_info(tasks)");
+  if (!columns.some(column => column[1] === 'archived')) database.run('ALTER TABLE tasks ADD COLUMN archived INTEGER NOT NULL DEFAULT 0');
 }
 
 async function getBrowserSqlite() {
@@ -80,7 +83,7 @@ async function getBrowserSqlite() {
     browserSqlite.run('BEGIN');
     try {
       for (const category of stored.categories) browserSqlite.run('INSERT OR IGNORE INTO categories (id, name) VALUES (?, ?)', [category.id, category.name]);
-      for (const task of stored.tasks || []) browserSqlite.run('INSERT OR REPLACE INTO tasks (id, title, priority, dueDate, isDone, categoryId) VALUES (?, ?, ?, ?, ?, ?)', [task.id, task.title, task.priority, task.dueDate, task.isDone ? 1 : 0, task.categoryId || null]);
+      for (const task of stored.tasks || []) browserSqlite.run('INSERT OR REPLACE INTO tasks (id, title, priority, dueDate, isDone, archived, categoryId) VALUES (?, ?, ?, ?, ?, ?, ?)', [task.id, task.title, task.priority, task.dueDate, task.isDone ? 1 : 0, task.archived ? 1 : 0, task.categoryId || null]);
       browserSqlite.run('COMMIT');
     } catch (error) {
       browserSqlite.run('ROLLBACK');
@@ -95,7 +98,7 @@ async function localData() {
   const database = await getBrowserSqlite();
   const categories = browserRows(database, 'SELECT id, name FROM categories ORDER BY name').map(([id, name]) => ({ id, name }));
   const categoryNames = new Map(categories.map(category => [category.id, category.name]));
-  const tasks = browserRows(database, 'SELECT id, title, priority, dueDate, isDone, categoryId FROM tasks ORDER BY id').map(([id, title, priority, dueDate, isDone, categoryId]) => ({ id, title, priority, dueDate, isDone: Boolean(isDone), categoryId, categoryName: categoryNames.get(categoryId) || '' }));
+  const tasks = browserRows(database, 'SELECT id, title, priority, dueDate, isDone, archived, categoryId FROM tasks ORDER BY id').map(([id, title, priority, dueDate, isDone, archived, categoryId]) => ({ id, title, priority, dueDate, isDone: Boolean(isDone), archived: Boolean(archived), categoryId, categoryName: categoryNames.get(categoryId) || '' }));
   return { tasks, categories };
 }
 
@@ -106,7 +109,7 @@ async function saveLocalData(tasks, categories) {
     database.run('DELETE FROM tasks');
     database.run('DELETE FROM categories');
     for (const category of categories) database.run('INSERT INTO categories (id, name) VALUES (?, ?)', [category.id, category.name]);
-    for (const task of tasks) database.run('INSERT INTO tasks (id, title, priority, dueDate, isDone, categoryId) VALUES (?, ?, ?, ?, ?, ?)', [task.id, task.title, task.priority, task.dueDate, task.isDone ? 1 : 0, task.categoryId || null]);
+    for (const task of tasks) database.run('INSERT INTO tasks (id, title, priority, dueDate, isDone, archived, categoryId) VALUES (?, ?, ?, ?, ?, ?, ?)', [task.id, task.title, task.priority, task.dueDate, task.isDone ? 1 : 0, task.archived ? 1 : 0, task.categoryId || null]);
     database.run('COMMIT');
   } catch (error) {
     database.run('ROLLBACK');
@@ -133,14 +136,15 @@ async function load() {
 }
 
 function taskMarkup(task) {
-  return `<div class="task ${task.isDone ? 'done' : ''}"><button class="button secondary" data-action="toggle" data-id="${task.id}">${task.isDone ? 'Undo' : 'Done'}</button><div class="task-main"><div class="task-title">${escapeHtml(task.title)}</div><div class="task-meta">Due ${dateText(task.dueDate)} · Priority ${task.priority}/5${task.categoryName ? ` · ${escapeHtml(task.categoryName)}` : ''}</div></div><div class="task-actions"><button data-action="edit" data-id="${task.id}">Edit</button><button class="danger" data-action="delete" data-id="${task.id}">Delete</button></div></div>`;
+  const archiveLabel = task.archived ? 'Unarchive' : 'Archive';
+  return `<div class="task ${task.isDone ? 'done' : ''}"><button class="button secondary" data-action="toggle" data-id="${task.id}">${task.isDone ? 'Undo' : 'Done'}</button><div class="task-main"><div class="task-title">${escapeHtml(task.title)}</div><div class="task-meta">Due ${dateText(task.dueDate)} · Priority ${task.priority}/5${task.categoryName ? ` · ${escapeHtml(task.categoryName)}` : ''}</div></div><div class="task-actions"><button data-action="edit" data-id="${task.id}">Edit</button><button data-action="archive" data-id="${task.id}">${archiveLabel}</button><button class="danger" data-action="delete" data-id="${task.id}">Delete</button></div></div>`;
 }
 
 function render() {
   // Filtering happens before sorting so the selected sort order applies only to visible tasks.
-  const filtered = state.tasks.filter(task => !state.categoryId || String(task.categoryId) === state.categoryId);
+  const filtered = state.tasks.filter(task => task.archived === state.showArchived && (!state.hideDone || state.showArchived || !task.isDone) && (!state.categoryId || String(task.categoryId) === state.categoryId));
   const sorted = [...filtered].sort((a, b) => state.sort === 'due' ? new Date(a.dueDate) - new Date(b.dueDate) : state.sort === 'title' ? a.title.localeCompare(b.title) : b.priority - a.priority || new Date(a.dueDate) - new Date(b.dueDate));
-  const open = state.tasks.filter(task => !task.isDone);
+  const open = state.tasks.filter(task => !task.isDone && !task.archived);
   const homeTasks = [...open]
     .sort((a, b) => b.priority - a.priority || new Date(a.dueDate) - new Date(b.dueDate))
     .slice(0, 3);
@@ -150,16 +154,18 @@ function render() {
   $('task-category').innerHTML = '<option value="">No category</option>' + state.categories.map(c => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('');
   $('filter-category').innerHTML = '<option value="">All categories</option>' + state.categories.map(c => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('');
   $('filter-category').value = state.categoryId; $('sort-tasks').value = state.sort;
+  $('archive-view').textContent = state.showArchived ? 'Hide Archived Tasks' : 'View Archived Tasks';
+  $('hide-done').textContent = state.hideDone ? 'Show Done' : 'Hide Done';
 }
 
 function escapeHtml(value) { return String(value).replace(/[&<>'"]/g, character => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', "'":'&#39;', '"':'&quot;' }[character])); }
 function showView(view) { document.querySelectorAll('.view').forEach(element => element.classList.toggle('hidden', element.id !== `${view}-view`)); document.querySelectorAll('.nav-button').forEach(button => button.classList.toggle('active', button.dataset.view === view)); }
 function openDialog(task = null) { state.editing = task; $('dialog-title').textContent = task ? 'Edit a to-do' : 'Add a to-do'; $('task-id').value = task?.id || ''; $('task-title').value = task?.title || ''; $('task-priority').value = task?.priority || 3; $('priority-output').value = $('task-priority').value; $('task-category').value = task?.categoryId || ''; $('task-due').value = task ? task.dueDate.slice(0, 10) : today(); $('form-message').textContent = ''; $('task-dialog').showModal(); }
 
-async function saveTask(event) { event.preventDefault(); $('form-message').textContent = ''; const task = { title: $('task-title').value, priority: Number($('task-priority').value), dueDate: $('task-due').value, categoryId: $('task-category').value ? Number($('task-category').value) : null, isDone: state.editing?.isDone || false }; try { const id = $('task-id').value; await api(id ? `/api/tasks/${id}` : '/api/tasks', { method: id ? 'PUT' : 'POST', body: JSON.stringify(task) }); $('task-dialog').close(); await load(); } catch (error) { $('form-message').textContent = error.message; } }
+async function saveTask(event) { event.preventDefault(); $('form-message').textContent = ''; const task = { title: $('task-title').value, priority: Number($('task-priority').value), dueDate: $('task-due').value, categoryId: $('task-category').value ? Number($('task-category').value) : null, isDone: state.editing?.isDone || false, archived: state.editing?.archived || false }; try { const id = $('task-id').value; await api(id ? `/api/tasks/${id}` : '/api/tasks', { method: id ? 'PUT' : 'POST', body: JSON.stringify(task) }); $('task-dialog').close(); await load(); } catch (error) { $('form-message').textContent = error.message; } }
 
 // The same PUT path handles completion toggles and edits, keeping persistence behavior identical.
-async function handleTaskAction(event) { const button = event.target.closest('[data-action]'); if (!button) return; const task = state.tasks.find(item => item.id === Number(button.dataset.id)); if (!task) return; try { if (button.dataset.action === 'edit') openDialog(task); if (button.dataset.action === 'toggle') await api(`/api/tasks/${task.id}`, { method:'PUT', body: JSON.stringify({ ...task, dueDate: task.dueDate, isDone: !task.isDone }) }); if (button.dataset.action === 'delete' && confirm(`Delete “${task.title}”?`)) await api(`/api/tasks/${task.id}`, { method:'DELETE' }); await load(); } catch (error) { $('task-message').textContent = error.message; } }
+async function handleTaskAction(event) { const button = event.target.closest('[data-action]'); if (!button) return; const task = state.tasks.find(item => item.id === Number(button.dataset.id)); if (!task) return; try { if (button.dataset.action === 'edit') openDialog(task); if (button.dataset.action === 'toggle') await api(`/api/tasks/${task.id}`, { method:'PUT', body: JSON.stringify({ ...task, dueDate: task.dueDate, isDone: !task.isDone }) }); if (button.dataset.action === 'archive') await api(`/api/tasks/${task.id}`, { method:'PUT', body: JSON.stringify({ ...task, dueDate: task.dueDate, archived: !task.archived }) }); if (button.dataset.action === 'delete' && confirm(`Delete “${task.title}”?`)) await api(`/api/tasks/${task.id}`, { method:'DELETE' }); await load(); } catch (error) { $('task-message').textContent = error.message; } }
 async function loadWeather() {
   const city = $('city').value.trim();
   $('weather-result').textContent = 'Loading weather…';
@@ -206,7 +212,7 @@ async function saveTaskWithFallback(event) {
     $('form-message').textContent = 'Please enter a title.';
     return;
   }
-  const task = { title, priority: Number($('task-priority').value), dueDate: $('task-due').value, categoryId: $('task-category').value ? Number($('task-category').value) : null, isDone: state.editing?.isDone || false };
+  const task = { title, priority: Number($('task-priority').value), dueDate: $('task-due').value, categoryId: $('task-category').value ? Number($('task-category').value) : null, isDone: state.editing?.isDone || false, archived: state.editing?.archived || false };
   try {
     const id = $('task-id').value;
     await api(id ? `/api/tasks/${id}` : '/api/tasks', { method: id ? 'PUT' : 'POST', body: JSON.stringify(task) });
@@ -232,12 +238,16 @@ async function handleTaskActionWithFallback(event) {
   if (button.dataset.action === 'delete' && !confirm(`Delete “${task.title}”?`)) return;
   try {
     if (button.dataset.action === 'toggle') await api(`/api/tasks/${task.id}`, { method:'PUT', body: JSON.stringify({ ...task, isDone: !task.isDone }) });
+    if (button.dataset.action === 'archive') await api(`/api/tasks/${task.id}`, { method:'PUT', body: JSON.stringify({ ...task, archived: !task.archived }) });
     if (button.dataset.action === 'delete') await api(`/api/tasks/${task.id}`, { method:'DELETE' });
   } catch {
     const data = await localData();
     if (button.dataset.action === 'toggle') {
       const localTask = data.tasks.find(item => item.id === task.id);
       if (localTask) localTask.isDone = !localTask.isDone;
+    } else if (button.dataset.action === 'archive') {
+      const localTask = data.tasks.find(item => item.id === task.id);
+      if (localTask) localTask.archived = !localTask.archived;
     } else data.tasks = data.tasks.filter(item => item.id !== task.id);
     await saveLocalData(data.tasks, data.categories);
   }
@@ -257,12 +267,35 @@ async function addCategoryWithFallback() {
   await load();
 }
 
+async function bulkDoneAction(action) {
+  const done = state.tasks.filter(task => task.isDone && !task.archived);
+  if (!done.length) return;
+  if (action === 'delete' && !confirm(`Delete ${done.length} completed task${done.length === 1 ? '' : 's'}?`)) return;
+  try {
+    await Promise.all(done.map(task => api(`/api/tasks/${task.id}`, {
+      method: action === 'delete' ? 'DELETE' : 'PUT',
+      body: action === 'delete' ? undefined : JSON.stringify({ ...task, archived: true })
+    })));
+  } catch {
+    const data = await localData();
+    data.tasks = action === 'delete'
+      ? data.tasks.filter(task => !(task.isDone && !task.archived))
+      : data.tasks.map(task => task.isDone && !task.archived ? { ...task, archived: true } : task);
+    await saveLocalData(data.tasks, data.categories);
+  }
+  await load();
+}
+
 document.querySelectorAll('.nav-button').forEach(button => button.addEventListener('click', () => showView(button.dataset.view)));
 ['open-tasks'].forEach(id => $(id).addEventListener('click', () => showView('tasks')));
 ['add-task','home-add'].forEach(id => $(id).addEventListener('click', () => openDialog()));
 document.querySelectorAll('.task-list').forEach(list => list.addEventListener('click', handleTaskActionWithFallback));
 $('task-form').addEventListener('submit', saveTaskWithFallback); $('task-priority').addEventListener('input', () => $('priority-output').value = $('task-priority').value); $('weather-load').addEventListener('click', loadWeather); $('weather-refresh').addEventListener('click', loadWeather);
 $('filter-category').addEventListener('change', event => { state.categoryId = event.target.value; render(); }); $('sort-tasks').addEventListener('change', event => { state.sort = event.target.value; render(); }); $('add-category').addEventListener('click', addCategoryWithFallback);
+$('archive-view').addEventListener('click', () => { state.showArchived = !state.showArchived; render(); });
+$('hide-done').addEventListener('click', () => { state.hideDone = !state.hideDone; render(); });
+$('archive-done').addEventListener('click', () => bulkDoneAction('archive'));
+$('delete-done').addEventListener('click', () => bulkDoneAction('delete'));
 load();
 loadWeather();
 setInterval(loadWeather, 15000);

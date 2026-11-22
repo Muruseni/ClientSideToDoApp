@@ -73,6 +73,7 @@ app.MapPut("/api/tasks/{id:int}", async (int id, TaskRequest request, ITodoRepos
     item.DueDate = request.DueDate?.Date ?? DateTime.Today;
     item.CategoryId = request.CategoryId;
     item.IsDone = request.IsDone;
+    item.Archived = request.Archived;
 
     try
     {
@@ -135,9 +136,9 @@ app.Run();
 
 // The response deliberately exposes the category name but not Category.TodoItems.
 static TaskResponse ToTaskResponse(TodoItem item) => new(
-    item.Id, item.Title, item.Priority, item.DueDate, item.IsDone,
+    item.Id, item.Title, item.Priority, item.DueDate, item.IsDone, item.Archived,
     item.CategoryId, item.Category?.Name);
 
-record TaskRequest(string? Title, int Priority, DateTime? DueDate, int? CategoryId, bool IsDone = false);
+record TaskRequest(string? Title, int Priority, DateTime? DueDate, int? CategoryId, bool IsDone = false, bool Archived = false);
 record CategoryRequest(string? Name);
-record TaskResponse(int Id, string Title, int Priority, DateTime DueDate, bool IsDone, int? CategoryId, string? CategoryName);
+record TaskResponse(int Id, string Title, int Priority, DateTime DueDate, bool IsDone, bool Archived, int? CategoryId, string? CategoryName);

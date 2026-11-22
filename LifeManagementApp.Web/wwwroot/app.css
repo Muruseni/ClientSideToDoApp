@@ -27,6 +27,7 @@ button { min-height: 44px; }
 .hero-card h2 { font-size: 1.8rem; max-width: 420px; margin: 8px 0; }
 .eyebrow { font-size: .75rem; text-transform: uppercase; letter-spacing: .12em; opacity: .85; }
 .card-heading { display: flex; justify-content: space-between; align-items: center; gap: 16px; }
+.header-actions, .bulk-actions { display: flex; gap: 8px; flex-wrap: wrap; }
 .card h2 { margin: 0 0 4px; }
 .button { border: 0; border-radius: 10px; background: #5865d9; color: white; font-weight: 700; padding: 11px 16px; cursor: pointer; }
 .button:hover { filter: brightness(.95); }
@@ -47,6 +48,7 @@ button { min-height: 44px; }
 .task-actions { display: flex; gap: 6px; }
 .task-actions button { border: 0; background: #f1f3f7; padding: 8px 10px; border-radius: 8px; cursor: pointer; color: #4b5563; }
 .task-actions .danger { color: #c0392b; }
+.button.danger { background: #fff0ee; color: #c0392b; }
 .message { color: #c0392b; min-height: 24px; margin-top: 12px; }
 .hidden { display: none !important; }
 
@@ -73,6 +75,8 @@ input[type=range] { padding: 0; accent-color: #5865d9; }
   .card { padding: 18px; border-radius: 14px; }
   .card-heading { align-items: stretch; flex-direction: column; gap: 10px; }
   .card-heading > .button, .card-heading > .text-button { width: 100%; }
+  .header-actions, .bulk-actions { width: 100%; }
+  .header-actions > button, .bulk-actions > button { flex: 1; }
   .weather-search, .filters, .category-create { flex-direction: column; }
   .weather-search .button, .category-create .button { width: 100%; }
   .task { align-items: flex-start; flex-wrap: wrap; gap: 10px; }

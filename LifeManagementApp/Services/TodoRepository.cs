@@ -20,6 +20,16 @@ public class TodoRepository(IDbContextFactory<AppDbContext> contextFactory) : IT
             if (initialized) return;
             await using var db = await contextFactory.CreateDbContextAsync();
             await db.Database.EnsureCreatedAsync();
+            // EnsureCreated does not alter an existing database. Add the archive
+            // column for databases created by earlier versions of the app.
+            await db.Database.OpenConnectionAsync();
+            await using var command = db.Database.GetDbConnection().CreateCommand();
+            command.CommandText = "SELECT COUNT(*) FROM pragma_table_info('TodoItems') WHERE name = 'Archived'";
+            var hasArchivedColumn = Convert.ToInt32(await command.ExecuteScalarAsync()) > 0;
+            if (!hasArchivedColumn)
+            {
+                await db.Database.ExecuteSqlRawAsync("ALTER TABLE TodoItems ADD COLUMN Archived INTEGER NOT NULL DEFAULT 0");
+            }
             initialized = true;
         }
         finally
@@ -55,6 +65,7 @@ public class TodoRepository(IDbContextFactory<AppDbContext> contextFactory) : IT
             Priority = item.Priority,
             DueDate = item.DueDate,
             IsDone = item.IsDone,
+            Archived = item.Archived,
             CategoryId = item.CategoryId
         };
         db.TodoItems.Add(stored);

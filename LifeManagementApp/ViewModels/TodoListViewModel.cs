@@ -16,11 +16,26 @@ public partial class TodoListViewModel(ITodoRepository repository, INavigationSe
     [ObservableProperty] private Category? selectedCategory;
     [ObservableProperty] private string selectedSort = "Priority";
     [ObservableProperty] private string newCategoryName = string.Empty;
+    [ObservableProperty] private bool showArchived;
+    [ObservableProperty] private bool hideDone;
 
     private IReadOnlyList<TodoItem> allItems = [];
 
+    public string ArchiveViewButtonText => ShowArchived ? "Hide Archived Tasks" : "View Archived Tasks";
+    public string HideDoneButtonText => HideDone ? "Show Done" : "Hide Done";
+
     partial void OnSelectedCategoryChanged(Category? value) => ApplyFilters();
     partial void OnSelectedSortChanged(string value) => ApplyFilters();
+    partial void OnShowArchivedChanged(bool value)
+    {
+        OnPropertyChanged(nameof(ArchiveViewButtonText));
+        ApplyFilters();
+    }
+    partial void OnHideDoneChanged(bool value)
+    {
+        OnPropertyChanged(nameof(HideDoneButtonText));
+        ApplyFilters();
+    }
 
     public async Task RefreshAsync()
     {
@@ -38,7 +53,9 @@ public partial class TodoListViewModel(ITodoRepository repository, INavigationSe
     private void ApplyFilters()
     {
         // Reapply both choices together so changing one control never discards the other.
-        var filtered = allItems.Where(item => SelectedCategory is null || item.CategoryId == SelectedCategory.Id);
+        var filtered = allItems.Where(item => item.Archived == ShowArchived
+            && (ShowArchived || !HideDone || !item.IsDone)
+            && (SelectedCategory is null || item.CategoryId == SelectedCategory.Id));
         filtered = SelectedSort switch
         {
             "Due date" => filtered.OrderBy(item => item.DueDate).ThenByDescending(item => item.Priority),
@@ -71,6 +88,66 @@ public partial class TodoListViewModel(ITodoRepository repository, INavigationSe
 
     [RelayCommand] private Task AddAsync() => navigation.GoToAddTodoAsync();
     [RelayCommand] private Task EditAsync(TodoItem item) => navigation.GoToEditTodoAsync(item.Id);
+
+    [RelayCommand]
+    private void ToggleArchivedView() => ShowArchived = !ShowArchived;
+
+    [RelayCommand]
+    private void ToggleHideDone() => HideDone = !HideDone;
+
+    [RelayCommand]
+    private async Task ArchiveAsync(TodoItem item)
+    {
+        var previous = item.Archived;
+        item.Archived = !previous;
+        try
+        {
+            await repository.UpdateAsync(item);
+            await RefreshAsync();
+        }
+        catch (Exception)
+        {
+            item.Archived = previous;
+            ErrorMessage = "Could not update the archive status.";
+        }
+    }
+
+    [RelayCommand]
+    private async Task ArchiveDoneAsync()
+    {
+        try
+        {
+            foreach (var item in allItems.Where(item => item.IsDone && !item.Archived).ToList())
+            {
+                item.Archived = true;
+                await repository.UpdateAsync(item);
+            }
+            await RefreshAsync();
+            ErrorMessage = string.Empty;
+        }
+        catch (Exception)
+        {
+            ErrorMessage = "Could not archive completed tasks.";
+        }
+    }
+
+    [RelayCommand]
+    private async Task DeleteDoneAsync()
+    {
+        try
+        {
+            foreach (var item in allItems.Where(item => item.IsDone && !item.Archived).ToList())
+            {
+                await repository.DeleteAsync(item.Id);
+            }
+            await RefreshAsync();
+            ErrorMessage = string.Empty;
+        }
+        catch (Exception)
+        {
+            ErrorMessage = "Could not delete completed tasks.";
+        }
+    }
 
     [RelayCommand]
     private async Task ToggleDoneAsync(TodoItem item)
