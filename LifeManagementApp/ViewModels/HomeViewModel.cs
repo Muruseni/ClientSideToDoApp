@@ -11,7 +11,7 @@ public partial class HomeViewModel(ITodoRepository repository, INavigationServic
     // The optional weather service keeps task previews testable without network access.
     public ObservableCollection<TodoItem> Items { get; } = [];
     [ObservableProperty] private string errorMessage = string.Empty;
-    [ObservableProperty] private string city = "Kyiv";
+    [ObservableProperty] private string city = "Vaasa";
     [ObservableProperty] private WeatherSnapshot? weather;
     [ObservableProperty] private bool isWeatherBusy;
     [ObservableProperty] private string weatherError = string.Empty;
@@ -40,6 +40,8 @@ public partial class HomeViewModel(ITodoRepository repository, INavigationServic
             ErrorMessage = "Could not load your tasks.";
         }
     }
+
+    public Task RefreshWeatherAsync() => LoadWeatherAsync();
 
     [RelayCommand]
     private Task OpenTasksAsync() => navigation.GoToTodoListAsync();

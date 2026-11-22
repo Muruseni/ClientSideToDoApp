@@ -140,9 +140,12 @@ function render() {
   // Filtering happens before sorting so the selected sort order applies only to visible tasks.
   const filtered = state.tasks.filter(task => !state.categoryId || String(task.categoryId) === state.categoryId);
   const sorted = [...filtered].sort((a, b) => state.sort === 'due' ? new Date(a.dueDate) - new Date(b.dueDate) : state.sort === 'title' ? a.title.localeCompare(b.title) : b.priority - a.priority || new Date(a.dueDate) - new Date(b.dueDate));
-  const open = sorted.filter(task => !task.isDone);
+  const open = state.tasks.filter(task => !task.isDone);
+  const homeTasks = [...open]
+    .sort((a, b) => b.priority - a.priority || new Date(a.dueDate) - new Date(b.dueDate))
+    .slice(0, 3);
   $('all-tasks').innerHTML = sorted.length ? sorted.map(taskMarkup).join('') : '<p>No tasks yet. Add one to get started.</p>';
-  $('next-tasks').innerHTML = open.length ? open.slice(0, 3).map(taskMarkup).join('') : '<p>No open tasks yet. Add one from the To-dos tab.</p>';
+  $('next-tasks').innerHTML = homeTasks.length ? homeTasks.map(taskMarkup).join('') : '<p>No open tasks yet. Add one from the To-dos tab.</p>';
   $('home-summary').textContent = open.length ? `${open.length} open task${open.length === 1 ? '' : 's'} waiting for you.` : 'You are all caught up.';
   $('task-category').innerHTML = '<option value="">No category</option>' + state.categories.map(c => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('');
   $('filter-category').innerHTML = '<option value="">All categories</option>' + state.categories.map(c => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('');
@@ -198,7 +201,12 @@ async function addCategory() { const name = $('new-category').value.trim(); if (
 async function saveTaskWithFallback(event) {
   event.preventDefault();
   $('form-message').textContent = '';
-  const task = { title: $('task-title').value, priority: Number($('task-priority').value), dueDate: $('task-due').value, categoryId: $('task-category').value ? Number($('task-category').value) : null, isDone: state.editing?.isDone || false };
+  const title = $('task-title').value.trim();
+  if (!title) {
+    $('form-message').textContent = 'Please enter a title.';
+    return;
+  }
+  const task = { title, priority: Number($('task-priority').value), dueDate: $('task-due').value, categoryId: $('task-category').value ? Number($('task-category').value) : null, isDone: state.editing?.isDone || false };
   try {
     const id = $('task-id').value;
     await api(id ? `/api/tasks/${id}` : '/api/tasks', { method: id ? 'PUT' : 'POST', body: JSON.stringify(task) });
@@ -256,3 +264,5 @@ document.querySelectorAll('.task-list').forEach(list => list.addEventListener('c
 $('task-form').addEventListener('submit', saveTaskWithFallback); $('task-priority').addEventListener('input', () => $('priority-output').value = $('task-priority').value); $('weather-load').addEventListener('click', loadWeather); $('weather-refresh').addEventListener('click', loadWeather);
 $('filter-category').addEventListener('change', event => { state.categoryId = event.target.value; render(); }); $('sort-tasks').addEventListener('change', event => { state.sort = event.target.value; render(); }); $('add-category').addEventListener('click', addCategoryWithFallback);
 load();
+loadWeather();
+setInterval(loadWeather, 15000);
