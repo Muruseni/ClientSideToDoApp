@@ -134,7 +134,6 @@ async function load() {
     // the local .NET API cannot start under the device's security policy.
     ({ tasks: state.tasks, categories: state.categories } = await localData());
     render();
-    $('task-message').textContent = 'Offline mode: tasks are saved in this browser database.';
   }
 }
 
