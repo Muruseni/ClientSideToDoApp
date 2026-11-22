@@ -31,6 +31,8 @@ await using (var startupScope = app.Services.CreateAsyncScope())
 app.UseDefaultFiles();
 app.UseStaticFiles();
 
+// These endpoints are deliberately thin: validation and database rules stay in the
+// shared repository, while this web host translates HTTP requests into model changes.
 // Return DTO-shaped task records so EF navigation properties do not create JSON cycles.
 app.MapGet("/api/tasks", async (ITodoRepository repository) =>
     Results.Ok((await repository.GetAllAsync()).Select(ToTaskResponse)));

@@ -6,6 +6,7 @@ namespace LifeManagementApp.Tests;
 
 public class WeatherServiceTests
 {
+    // A fake HttpMessageHandler makes the REST test deterministic and offline.
     [Fact]
     public async Task WeatherServiceMapsForecastAndKitesurfThreshold()
     {

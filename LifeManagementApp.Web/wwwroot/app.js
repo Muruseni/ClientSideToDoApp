@@ -1,3 +1,5 @@
+// The browser keeps one small state object; render() turns this state into HTML.
+// It lets the same UI work with the ASP.NET API or with the offline SQLite fallback.
 const state = { tasks: [], categories: [], editing: null, categoryId: '', sort: 'priority', showArchived: false, hideDone: false };
 const $ = id => document.getElementById(id);
 const today = () => new Date().toISOString().slice(0, 10);
@@ -94,6 +96,7 @@ async function getBrowserSqlite() {
   return browserSqlite;
 }
 
+// Read a complete browser snapshot so task and category selectors always agree.
 async function localData() {
   const database = await getBrowserSqlite();
   const categories = browserRows(database, 'SELECT id, name FROM categories ORDER BY name').map(([id, name]) => ({ id, name }));
@@ -268,6 +271,8 @@ async function addCategoryWithFallback() {
 }
 
 async function bulkDoneAction(action) {
+  // Bulk actions only target completed active tasks; archived tasks already have
+  // their own view and must not be changed by these buttons.
   const done = state.tasks.filter(task => task.isDone && !task.archived);
   if (!done.length) return;
   if (action === 'delete' && !confirm(`Delete ${done.length} completed task${done.length === 1 ? '' : 's'}?`)) return;

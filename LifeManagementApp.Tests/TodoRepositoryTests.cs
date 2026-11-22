@@ -8,6 +8,8 @@ namespace LifeManagementApp.Tests;
 
 public class TodoRepositoryTests
 {
+    // This is an integration-style test: separate repository instances prove
+    // that data really crosses DbContext boundaries and is not only in memory.
     [Fact]
     public async Task SavesReadsUpdatesAndDeletesAcrossContexts()
     {

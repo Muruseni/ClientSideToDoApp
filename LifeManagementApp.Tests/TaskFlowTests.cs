@@ -6,6 +6,8 @@ namespace LifeManagementApp.Tests;
 
 public class TaskFlowTests
 {
+    // These tests exercise ViewModels through their generated CommunityToolkit
+    // commands, proving the application flow without starting a device window.
     // Fake services keep view-model behavior testable without launching MAUI UI.
     [Fact]
     public async Task AddRejectsBlankThenSavesTrimmedTitleAndReturns()
@@ -179,6 +181,7 @@ public class TaskFlowTests
 
     private sealed class FakeRepository : ITodoRepository
     {
+        // The fake stores only what each ViewModel test needs; EF behavior is covered separately.
         public TodoItem? Saved { get; set; }
         public List<TodoItem> Items { get; set; } = [];
         public List<Category> Categories { get; set; } = [];

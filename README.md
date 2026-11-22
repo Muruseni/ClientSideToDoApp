@@ -116,3 +116,82 @@ AI assistance was used for code exploration, test scaffolding, documentation dra
 ## Presentation checklist
 
 For a criterion-specific walkthrough, demonstrate: adding a validated task; priority and due-date ordering; the top-three home preview; category creation and filtering; editing, completion, deletion, and persistence; weather lookup and the over-5 m/s kitesurf threshold; offline/error behavior; and the difference between server-backed SQLite mode and browser-only safe mode.
+
+## Code walkthrough
+
+This section is a presentation guide. The comments in the source explain local decisions; this list explains where to look and how the pieces connect.
+
+### Startup and navigation
+
+- [MauiProgram.cs](LifeManagementApp/MauiProgram.cs) creates the MAUI application, registers SQLite, services, pages, and ViewModels with dependency injection, and chooses their lifetimes.
+- [App.xaml](LifeManagementApp/App.xaml) defines application-wide resources such as styles and value converters.
+- [App.xaml.cs](LifeManagementApp/App.xaml.cs) creates the first application window and uses [AppShell.xaml](LifeManagementApp/AppShell.xaml) as its visual root.
+- [AppShell.xaml](LifeManagementApp/AppShell.xaml) defines the Home and To-dos destinations that appear in Shell navigation.
+- [AppShell.xaml.cs](LifeManagementApp/AppShell.xaml.cs) registers the add and edit detail routes.
+- [ShellNavigationService.cs](LifeManagementApp/Services/ShellNavigationService.cs) hides Shell route strings behind `INavigationService`, so ViewModels do not call `Shell.Current` directly.
+
+### Models and database
+
+- [TodoItem.cs](LifeManagementApp/Models/TodoItem.cs) is the main task model. It contains the required fields, the category relationship, the archive state, and DataAnnotations validation.
+- [Category.cs](LifeManagementApp/Models/Category.cs) represents a category and its one-to-many relationship with tasks.
+- [WeatherSnapshot.cs](LifeManagementApp/Models/WeatherSnapshot.cs) is the normalized weather object shown by the UI. Its `KitesurfConditions` property contains the `WindSpeed > 5` rule.
+- [AppDbContext.cs](LifeManagementApp/Data/AppDbContext.cs) is EF Core’s map of the SQLite database. It exposes `TodoItems` and `Categories` and configures category deletion.
+- [ITodoRepository.cs](LifeManagementApp/Services/ITodoRepository.cs) defines the storage operations used by the application.
+- [TodoRepository.cs](LifeManagementApp/Services/TodoRepository.cs) creates short-lived EF Core contexts, initializes SQLite, upgrades older databases with the archive column, and performs async CRUD operations.
+
+### Services
+
+- [IWeatherService.cs](LifeManagementApp/Services/IWeatherService.cs) defines the weather service contract.
+- [OpenMeteoWeatherService.cs](LifeManagementApp/Services/OpenMeteoWeatherService.cs) first geocodes a city, then requests its forecast from Open-Meteo with `wind_speed_unit=ms`, maps JSON into `WeatherSnapshot`, and translates weather codes into readable text.
+- [INavigationService.cs](LifeManagementApp/Services/INavigationService.cs) defines navigation actions without exposing UI controls to ViewModels.
+
+### ViewModels
+
+- [HomeViewModel.cs](LifeManagementApp/ViewModels/HomeViewModel.cs) loads unfinished tasks, orders them by priority and due date, limits the result to three items, and manages weather loading/error state.
+- [TodoListViewModel.cs](LifeManagementApp/ViewModels/TodoListViewModel.cs) owns the task list projection. It applies category filters, sort order, active/archive view, hide-done state, single-task archive actions, and bulk done-task actions.
+- [AddTodoViewModel.cs](LifeManagementApp/ViewModels/AddTodoViewModel.cs) loads categories and validates a new task before calling the repository.
+- [EditTodoViewModel.cs](LifeManagementApp/ViewModels/EditTodoViewModel.cs) loads a task by the Shell-passed id, edits its fields, and saves it through the repository.
+
+### Views and binding
+
+- [HomePage.xaml](LifeManagementApp/Views/HomePage.xaml) binds the HomeViewModel to the top-three list, weather card, loading indicator, and kitesurf alert.
+- [HomePage.xaml.cs](LifeManagementApp/Views/HomePage.xaml.cs) refreshes Home when it appears and starts/stops the 15-second weather timer with the page lifecycle.
+- [TodoListPage.xaml](LifeManagementApp/Views/TodoListPage.xaml) contains the `CollectionView`, filters, sort picker, category form, archive controls, and task buttons.
+- [TodoListPage.xaml.cs](LifeManagementApp/Views/TodoListPage.xaml.cs) refreshes the list when returning to the page.
+- [AddTodoPage.xaml](LifeManagementApp/Views/AddTodoPage.xaml) and [AddTodoPage.xaml.cs](LifeManagementApp/Views/AddTodoPage.xaml.cs) display the add form and load current categories.
+- [EditTodoPage.xaml](LifeManagementApp/Views/EditTodoPage.xaml) and [EditTodoPage.xaml.cs](LifeManagementApp/Views/EditTodoPage.xaml.cs) display the edit form and receive the task id through Shell query parameters.
+- [TaskCompletionTextConverter.cs](LifeManagementApp/Converters/TaskCompletionTextConverter.cs) changes `Done` to `Undo` after completion.
+- [ArchiveTextConverter.cs](LifeManagementApp/Converters/ArchiveTextConverter.cs) changes `Archive` to `Unarchive` for archived tasks.
+
+### Tests
+
+- [TaskFlowTests.cs](LifeManagementApp.Tests/TaskFlowTests.cs) tests ViewModel behavior such as validation, ordering, filtering, categories, editing, and the wind threshold.
+- [TodoItemTests.cs](LifeManagementApp.Tests/TodoItemTests.cs) tests the model’s title and priority validation boundaries.
+- [TodoRepositoryTests.cs](LifeManagementApp.Tests/TodoRepositoryTests.cs) tests SQLite persistence across separate contexts, categories, updates, deletion, and validation.
+- [WeatherServiceTests.cs](LifeManagementApp.Tests/WeatherServiceTests.cs) tests JSON mapping and verifies that Open-Meteo is requested in metres per second.
+
+### Browser client
+
+- [Program.cs](LifeManagementApp.Web/Program.cs) is the ASP.NET Core host. It registers the shared services, initializes SQLite, serves the browser files, and exposes `/api/tasks`, `/api/categories`, and `/api/weather`.
+- [app.js](LifeManagementApp.Web/wwwroot/app.js) stores browser UI state, calls the API, renders task HTML, handles task actions, refreshes weather, and falls back to browser-local SQLite when the API is unavailable.
+- [index.html](LifeManagementApp.Web/wwwroot/index.html) defines the browser page structure and form controls.
+- [app.css](LifeManagementApp.Web/wwwroot/app.css) defines the visual design and responsive mobile layout.
+- [static-server.mjs](LifeManagementApp.Web/static-server.mjs) serves only `wwwroot` for the safe browser-only mode; it does not run the .NET API.
+
+The platform files under [Platforms](LifeManagementApp/Platforms) are MAUI-generated startup and packaging adapters for Android, iOS, Mac Catalyst, Windows, and Tizen. They let the same application project start correctly on each platform; the task and weather logic stays in the shared folders above. The icon, font, splash, and style files under [Resources](LifeManagementApp/Resources) provide visual assets and shared appearance rather than application behavior.
+
+## How .NET MAUI works in this project
+
+MAUI is one .NET application that can create native controls for several platforms. The shared C# and XAML files contain the app’s behavior and layouts; MAUI builds them into a Windows, Android, iOS, Mac Catalyst, or Tizen application using the selected platform target.
+
+1. The platform entry point starts MAUI and calls `MauiProgram.CreateMauiApp()`.
+2. `MauiProgram` registers dependencies. When a page asks for a ViewModel in its constructor, the DI container creates the ViewModel and supplies its repository, navigation service, and weather service.
+3. `App` creates an `AppShell`. Shell provides the navigation stack and the Home/To-dos flyout.
+4. A XAML page creates the visual tree: labels, buttons, pickers, entries, and `CollectionView` items.
+5. `BindingContext` connects the page to a ViewModel. Bindings move values from `[ObservableProperty]` fields to controls, and `[RelayCommand]` generates commands that buttons can call.
+6. A user action calls a ViewModel command. The ViewModel validates input and calls an interface such as `ITodoRepository`; it does not manipulate a button or text box directly.
+7. The repository creates an EF Core `AppDbContext` from the registered factory, performs an async SQLite query or update, and returns model objects.
+8. CommunityToolkit.Mvvm raises property-change notifications automatically. The page updates when the ViewModel changes `Items`, `Weather`, `IsBusy`, or an error message.
+9. Page lifecycle methods such as `OnAppearing` refresh data. The Home page starts a `PeriodicTimer` for weather and cancels it in `OnDisappearing` so hidden pages do not keep making requests.
+
+The important separation is: **View = presentation, ViewModel = screen behavior, Service/Repository = external work, Model = data and rules**. This is why the same repository and weather service can be used by both the MAUI client and the ASP.NET browser host, and why the ViewModels can be tested without opening a real device window.

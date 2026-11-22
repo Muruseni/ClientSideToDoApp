@@ -6,6 +6,7 @@
              x:Class="LifeManagementApp.App">
     <Application.Resources>
         <ResourceDictionary>
+            <!-- Converters keep small display decisions out of page code-behind. -->
             <converters:TaskCompletionTextConverter x:Key="TaskCompletionTextConverter" />
             <converters:ArchiveTextConverter x:Key="ArchiveTextConverter" />
             <ResourceDictionary.MergedDictionaries>
