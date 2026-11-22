@@ -15,6 +15,7 @@ public partial class HomeViewModel(ITodoRepository repository, INavigationServic
     [ObservableProperty] private WeatherSnapshot? weather;
     [ObservableProperty] private bool isWeatherBusy;
     [ObservableProperty] private string weatherError = string.Empty;
+    public string SupportiveMessage { get; } = SupportiveMessageProvider.GetRandom();
 
     public async Task RefreshAsync()
     {

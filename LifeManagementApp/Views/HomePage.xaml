@@ -9,7 +9,7 @@
     <Grid Padding="24" RowDefinitions="Auto,Auto,Auto,*,Auto" RowSpacing="16">
         <VerticalStackLayout Spacing="4">
             <Label Text="Life Management" FontSize="28" FontAttributes="Bold" />
-            <Label Text="A calm place for today’s priorities." Style="{StaticResource CaptionLabel}" />
+            <Label Text="{Binding SupportiveMessage}" Style="{StaticResource CaptionLabel}" />
         </VerticalStackLayout>
         <!-- Weather is optional: the page keeps task content usable when the network fails. -->
         <Border Grid.Row="1" Style="{StaticResource CardBorder}">

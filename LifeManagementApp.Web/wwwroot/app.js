@@ -10,6 +10,28 @@ const browserSqlJsVersion = '1.13.0';
 let browserSqlite;
 let browserStorage;
 
+const supportiveMessages = [
+  'Keep your important things moving.',
+  'Small steps still move you forward.',
+  'You can make today count.',
+  'One task at a time is enough.',
+  'You are doing great work.',
+  'Make space for what matters most.',
+  'Progress is progress, however small.'
+];
+
+// Remember the previous choice so a normal browser reload selects a different
+// supportive message whenever at least two choices are available.
+function chooseSupportiveMessage() {
+  const previous = sessionStorage.getItem('supportive-message');
+  const choices = supportiveMessages.filter(message => message !== previous);
+  const message = choices[Math.floor(Math.random() * choices.length)];
+  sessionStorage.setItem('supportive-message', message);
+  return message;
+}
+
+const supportiveMessage = chooseSupportiveMessage();
+
 // Keep fetch error handling in one place so every form displays API validation consistently.
 async function api(url, options) {
   const response = await fetch(url, { headers: { 'Content-Type': 'application/json' }, ...options });
@@ -153,6 +175,8 @@ function render() {
   $('all-tasks').innerHTML = sorted.length ? sorted.map(taskMarkup).join('') : '<p>No tasks yet. Add one to get started.</p>';
   $('next-tasks').innerHTML = homeTasks.length ? homeTasks.map(taskMarkup).join('') : '<p>No open tasks yet. Add one from the To-dos tab.</p>';
   $('home-summary').textContent = open.length ? `${open.length} open task${open.length === 1 ? '' : 's'} waiting for you.` : 'You are all caught up.';
+  $('supportive-message').textContent = supportiveMessage;
+  $('supportive-message-todos').textContent = supportiveMessage;
   $('task-category').innerHTML = '<option value="">No category</option>' + state.categories.map(c => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('');
   $('filter-category').innerHTML = '<option value="">All categories</option>' + state.categories.map(c => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('');
   $('filter-category').value = state.categoryId; $('sort-tasks').value = state.sort;

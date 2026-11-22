@@ -12,6 +12,7 @@ public partial class TodoListViewModel(ITodoRepository repository, INavigationSe
     public ObservableCollection<TodoItem> Items { get; } = [];
     public ObservableCollection<Category> Categories { get; } = [];
     public IReadOnlyList<string> SortOptions { get; } = ["Priority", "Due date", "Title"];
+    public string SupportiveMessage { get; } = SupportiveMessageProvider.GetRandom();
     [ObservableProperty] private string errorMessage = string.Empty;
     [ObservableProperty] private Category? selectedCategory;
     [ObservableProperty] private string selectedSort = "Priority";
